@@ -1,0 +1,21 @@
+(deftype Either [left , right r, left? Bool])
+
+(defmodule Either
+  (defn build-left [t]
+    (Either.init t () true))
+
+  (defn build-right [t]
+    (Either.init () t false))
+
+  (defn left-or [e x]
+    (if (Either.left? e)
+      (Either.left e)
+      x))
+
+  (defn right-or [e x]
+    (if (Either.left? e)
+      x
+      (Either.right e)))
+
+  (defn right? [e]
+    (not (Either.left? e))))
