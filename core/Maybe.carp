@@ -1,0 +1,16 @@
+(deftype Maybe [val t, just? Bool])
+
+(defmodule Maybe
+  (defn nothing? [m]
+    (not (Maybe.just? m)))
+
+  (defn build-just [t]
+    (Maybe.init t true))
+
+  (defn build-nothing []
+    (Maybe.init () false))
+
+  (defn just-or [m x]
+    (if (Maybe.just? m)
+      (Maybe.val m)
+      x)))
