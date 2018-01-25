@@ -115,6 +115,7 @@ repl context readSoFar =
 arrayModule :: Env
 arrayModule = Env { envBindings = bindings, envParent = Nothing, envModuleName = Just "Array", envUseModules = [], envMode = ExternalEnv }
   where bindings = Map.fromList [ templateNth
+                                , templateNthUnsafe
                                 , templateAllocate
                                 , templateFilter
                                 , templateRaw

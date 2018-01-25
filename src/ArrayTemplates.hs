@@ -112,6 +112,19 @@ templateNth =
   (\(FuncTy [(RefTy arrayType), _] _) ->
      [defineArrayTypeAlias arrayType])
 
+templateNthUnsafe :: (String, Binder)
+templateNthUnsafe =
+  let t = VarTy "t"
+  in defineTemplate
+  (SymPath ["Array"] "nth-unsafe")
+  (FuncTy [RefTy (StructTy "Array" [t]), IntTy] t)
+  (toTemplate "$t $NAME (Array *a, int n)")
+  (toTemplate $ unlines ["$DECL {"
+                        ,"    return (($t*)a->data)[n];"
+                        ,"}"])
+  (\(FuncTy [(RefTy arrayType), _] _) ->
+     [defineArrayTypeAlias arrayType])
+
 templateSort :: (String, Binder)
 templateSort = defineTypeParameterizedTemplate templateCreator path t
   where path = (SymPath ["Array"] "sort-with")

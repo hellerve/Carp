@@ -84,8 +84,6 @@ typedef struct {
     void *data;
 } Array;
 
-#define Array_nth_MINUS_unsafe(a, i) a[i]
-
 bool not(bool b) {
     return !b;
 }

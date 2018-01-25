@@ -1,6 +1,4 @@
 (defmodule Array
-  (register nth-unsafe (Fn [(Array a) Int] a))
-
   (defn reduce [f x xs]
     (let [total x]
       (do
@@ -146,6 +144,6 @@
   (defn endo-map [f a]
     (do
       (for [i 0 (count &a)]
-        (aset! &a i (f (nth-unsafe a i))))
+        (aset! &a i (f (nth-unsafe &a i))))
       a))
 )
