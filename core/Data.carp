@@ -1,0 +1,7 @@
+(deftype (Maybe a)
+  (Just a)
+  (Nothing))
+
+(deftype (Either a b)
+  (Left a)
+  (Right b))

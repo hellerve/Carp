@@ -177,7 +177,7 @@ templateNth :: (String, Binder)
 templateNth =
   let t = VarTy "t"
   in defineTemplate
-  (SymPath ["Array"] "nth")
+  (SymPath ["Array"] "nth!")
   (FuncTy [RefTy (StructTy "Array" [t]), IntTy] (RefTy t))
   (toTemplate "$t* $NAME (Array *aRef, int n)")
   (toTemplate $ unlines ["$DECL {"

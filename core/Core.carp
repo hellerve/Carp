@@ -1,3 +1,4 @@
+(load "Data.carp")
 (load "Interfaces.carp")
 (load "Macros.carp")
 (load "Dynamic.carp")

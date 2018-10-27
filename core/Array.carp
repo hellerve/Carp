@@ -10,11 +10,11 @@
 
   (doc first "Take the first element of an array.")
   (defn first [a]
-    @(Array.nth a 0))
+    (Array.nth a 0))
 
   (doc last "Take the last element of an array.")
   (defn last [a]
-    @(Array.nth a (Int.dec (Array.length a))))
+    (Array.nth a (Int.dec (Array.length a))))
 
   (doc = "Compare two arrays.")
   (defn = [a b]
@@ -206,4 +206,9 @@
     (zip Pair.init-from-refs
          &(range 0 (length xs) 1) ;; Inefficient, creates a temporary array.
          xs))
+
+    (defn nth [a i]
+      (if (and (> i -1) (< i (length a)))
+        (Just (nth! a i))
+        (Nothing)))
 )
