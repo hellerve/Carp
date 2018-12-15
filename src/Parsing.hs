@@ -162,8 +162,7 @@ pattern = do i <- createInfo
 escaped :: Parsec.Parsec String ParseState Char
 escaped =  do
     _ <- Parsec.char '\\'
-    _ <- Parsec.char '\"'
-    return '\"'
+    Parsec.oneOf ['\"', '\\']
 
 escapedQuoteChar :: Parsec.Parsec String ParseState Char
 escapedQuoteChar = do c <- Parsec.string "\""
