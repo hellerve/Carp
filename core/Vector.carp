@@ -24,16 +24,16 @@
           (/ @(y a) n)))
 
   (defn = [a b]
-    (and (Double.= @(x a) @(x b))
-         (Double.= @(y a) @(y b))))
+    (and (= @(x a) @(x b))
+         (= @(y a) @(y b))))
 
   (defn /= [a b]
     (not (= a b)))
 
   (doc approx "Check whether the vectors a and b are approximately equal.")
   (defn approx [a b]
-    (and (Double.approx @(x a) @(x b))
-         (Double.approx @(y a) @(y b))))
+    (and (approx @(x a) @(x b))
+         (approx @(y a) @(y b))))
 
   (doc mag-sq "Get the squared magnitude of a vector.")
   (defn mag-sq [o]
@@ -43,7 +43,7 @@
 
   (doc mag "Get the magnitude of a vector.")
   (defn mag [o]
-    (Double.sqrt (mag-sq o)))
+    (sqrt (mag-sq o)))
 
   (doc normalize "Normalize a vector.")
   (defn normalize [o]
@@ -59,13 +59,13 @@
 
   (doc heading "Get the heading of the vector a.")
   (defn heading [a]
-    (Double.atan2 @(y a) @(x a)))
+    (atan2 @(y a) @(x a)))
 
   (doc rotate "Rotate the vector a by the radians n.")
   (defn rotate [a n]
     (let [h (+ (heading a) n)
           m (mag a)]
-      (init (* (Double.cos h) m) (* (Double.sin h) m))))
+      (init (* (cos h) m) (* (sin h) m))))
 
   (doc dot "Get the dot product of the two vectors x and y.")
   (defn dot [a b]
@@ -75,11 +75,12 @@
   (doc angle-between "Get the angle between to vectors a and b.")
   (defn angle-between [a b]
     (let [dmm (/ (dot a b) (* (mag a) (mag b)))]
-      (Double.acos (Double.clamp -1.0 1.0 dmm))))
+      ; this is Double-only for now :(
+      (acos (Double.clamp -1.0 1.0 dmm))))
 
   (doc anti-parallel? "Check whether the two vectors a and b are anti-parallel.")
   (defn anti-parallel? [a b]
-    (= (angle-between a b) Double.pi))
+    (= (angle-between a b) pi))
 
   (doc parallel? "Check whether the two vectors a and b are parallel.")
   (defn parallel? [a b]
@@ -87,7 +88,7 @@
 
   (doc perpendicular? "Check whether the two vectors a and b are perpendicular.")
   (defn perpendicular? [a b]
-    (= (angle-between a b) (/ Double.pi 2.0)))
+    (= (angle-between a b) (/ pi 2.0)))
 
   (doc lerp "Linearly interpolate between the two vectors a and b by amnt (between 0 and 1).")
   (defn lerp [a b amnt]
@@ -105,9 +106,9 @@
     (init (random-between 0.0 1.0) (random-between 0.0 1.0) (random-between 0.0 1.0)))
 
   (defn = [a b]
-    (and (Double.= @(x a) @(x b))
-         (and (Double.= @(y a) @(y b))
-              (Double.= @(z a) @(z b)))))
+    (and (= @(x a) @(x b))
+         (and (= @(y a) @(y b))
+              (= @(z a) @(z b)))))
 
   (defn /= [a b]
     (not (= a b)))
@@ -141,7 +142,7 @@
 
   (doc mag "Get the magnitude of a vector.")
   (defn mag [o]
-    (Double.sqrt (mag-sq o)))
+    (sqrt (mag-sq o)))
 
   (doc normalize "Normalize a vector.")
   (defn normalize [o]
@@ -169,11 +170,11 @@
   (doc angle-between "Get the angle between to vectors a and b.")
   (defn angle-between [a b]
     (let [dmm (/ (dot a b) (* (mag a) (mag b)))]
-      (Double.acos (Double.clamp -1.0 1.0 dmm))))
+      (acos (Double.clamp -1.0 1.0 dmm))))
 
   (doc anti-parallel? "Check whether the two vectors a and b are anti-parallel.")
   (defn anti-parallel? [a b]
-    (= (angle-between a b) Double.pi))
+    (= (angle-between a b) pi))
 
   (doc parallel? "Check whether the two vectors a and b are parallel.")
   (defn parallel? [a b]
@@ -181,7 +182,7 @@
 
   (doc perpendicular? "Check whether the two vectors a and b are perpendicular.")
   (defn perpendicular? [a b]
-    (= (angle-between a b) (/ Double.pi 2.0)))
+    (= (angle-between a b) (/ pi 2.0)))
 
   (doc lerp "Linearly interpolate between the two vectors a and b by amnt (between 0 and 1).")
   (defn lerp [a b amnt]
@@ -246,7 +247,7 @@
 
   (doc mag "Get the magnitude of a vector.")
   (defn mag [o]
-    (Double.sqrt (mag-sq o)))
+    (sqrt (mag-sq o)))
 
   (doc dist "Get the distance between the vectors a and b.")
   (defn dist [a b]
@@ -267,11 +268,11 @@
   (doc angle-between "Get the angle between to vectors a and b.")
   (defn angle-between [a b]
     (let [dmm (/ (dot a b) (* (mag a) (mag b)))]
-      (Double.acos (Double.clamp -1.0 1.0 dmm))))
+      (acos (Double.clamp -1.0 1.0 dmm))))
 
   (doc anti-parallel? "Check whether the two vectors a and b are anti-parallel.")
   (defn anti-parallel? [a b]
-    (= (angle-between a b) Double.pi))
+    (= (angle-between a b) pi))
 
   (doc parallel? "Check whether the two vectors a and b are parallel.")
   (defn parallel? [a b]
@@ -279,7 +280,7 @@
 
   (doc perpendicular? "Check whether the two vectors a and b are perpendicular.")
   (defn perpendicular? [a b]
-    (= (angle-between a b) (/ Double.pi 2.0)))
+    (= (angle-between a b) (/ pi 2.0)))
 
   (doc lerp "Linearly interpolate between the two vectors a and b by amnt (between 0 and 1).")
   (defn lerp [a b amnt]

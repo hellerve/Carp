@@ -74,3 +74,26 @@
 
 (defn not-null? [p]
   (not (null? p)))
+
+; Mathematical interfaces
+(definterface sin (Fn [a] a))
+(definterface cos (Fn [a] a))
+(definterface tan (Fn [a] a))
+(definterface acos (Fn [a] a))
+(definterface asin (Fn [a] a))
+(definterface atan (Fn [a] a))
+(definterface atan2 (Fn [a a] a))
+(definterface cosh (Fn [a] a))
+(definterface sinh (Fn [a] a))
+(definterface tanh (Fn [a] a))
+(definterface exp (Fn [a] a))
+(definterface frexp (Fn [a (Ref Int)] a))
+(definterface ldexp (Fn [a Int] a))
+(definterface log (Fn [a] a))
+(definterface log10 (Fn [a] a))
+(definterface modf (Fn [a (Ref a)] a))
+(definterface pow (Fn [a a] a))
+(definterface sqrt (Fn [a] a))
+(definterface floor (Fn [a] a))
+(definterface ceil (Fn [a] a))
+(definterface clamp (Fn [a a a] a))

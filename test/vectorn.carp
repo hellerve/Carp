@@ -18,6 +18,9 @@
              "/= operator works"
              VectorN./=)
   (assert-equal test
+                &(init 4 [1 2 3 4]) &(init 4 [1 2 3 4])
+                "other types than doubles work")
+  (assert-equal test
                 &(init 3 [3.0 3.0 4.5])
                 &(add &(init 3 [2.0 1.0 2.0]) &(init 3 [1.0 2.0 2.5]))
                 "add operator works")
