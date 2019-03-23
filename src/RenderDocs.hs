@@ -14,15 +14,16 @@ import System.Directory
 import qualified Data.Map as Map
 import Debug.Trace
 
+import Lookup
 import Obj
 import Types
 import Util
 
-saveDocsForEnvs :: Project -> [(SymPath, Env)] -> IO ()
+saveDocsForEnvs :: Project -> [(SymPath, (String, Env))] -> IO ()
 saveDocsForEnvs ctx envs =
   let dir = projectDocsDir ctx
       title = projectTitle ctx
-      allEnvNames = (fmap (getModuleName . snd) envs)
+      allEnvNames = (fmap (getModuleName . snd . snd) envs)
   in  do mapM_ (saveDocsForEnv ctx allEnvNames) envs
          writeFile (dir ++ "/" ++ title ++ "_index.html") (projectIndexPage ctx allEnvNames)
          putStrLn ("Generated docs to '" ++ dir ++ "'")
@@ -61,19 +62,20 @@ getModuleName env =
     Just hasName -> hasName
     Nothing -> "Global"
 
-saveDocsForEnv :: Project -> [String] -> (SymPath, Env) -> IO ()
-saveDocsForEnv ctx moduleNames (pathToEnv, env) =
+saveDocsForEnv :: Project -> [String] -> (SymPath, (String, Env)) -> IO ()
+saveDocsForEnv ctx moduleNames (pathToEnv, (docString, env)) =
   do let SymPath _ moduleName = pathToEnv
          dir = projectDocsDir ctx
          fullPath = dir ++ "/" ++ moduleName ++ ".html"
-         string = renderHtml (envToHtml env ctx (show pathToEnv) moduleNames)
+         string = renderHtml (envToHtml env ctx (show pathToEnv) docString moduleNames)
      createDirectoryIfMissing False dir
      writeFile fullPath string
 
-envToHtml :: Env -> Project -> String -> [String] -> H.Html
-envToHtml env ctx moduleName moduleNames =
+envToHtml :: Env -> Project -> String -> String -> [String] -> H.Html
+envToHtml env ctx moduleName docString moduleNames =
   let title = projectTitle ctx
       css = projectDocsStyling ctx
+      summaryDoc = commonmarkToHtml [optSafe] $ Text.pack docString
   in H.docTypeHtml $
            do headOfPage css
               H.body $
@@ -85,6 +87,7 @@ envToHtml env ctx moduleName moduleNames =
                              H.div  ! A.class_ "title" $ (toHtml title)
                              moduleIndex moduleNames
                         H.h1 (toHtml moduleName)
+                        H.p ! A.class_ "summary" $ preEscapedToHtml summaryDoc
                         mapM_ (binderToHtml . snd) (Prelude.filter shouldEmitDocsForBinder (Map.toList (envBindings env)))
 
 shouldEmitDocsForBinder :: (String, Binder) -> Bool

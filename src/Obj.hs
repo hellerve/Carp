@@ -355,10 +355,10 @@ instance Show Binder where
   show binder = showBinderIndented 0 (getName (binderXObj binder), binder)
 
 showBinderIndented :: Int -> (String, Binder) -> String
-showBinderIndented indent (name, Binder _ (XObj (Mod env) _ _)) =
+showBinderIndented indent (name, Binder meta (XObj (Mod env) _ _)) =
   replicate indent ' ' ++ name ++ " : Module = {\n" ++
   prettyEnvironmentIndented (indent + 4) env ++
-  "\n" ++ replicate indent ' ' ++ "}"
+  "\n" ++ replicate indent ' ' ++ "} :: " ++ show meta
 showBinderIndented indent (name, Binder _ (XObj (Lst [XObj (Interface t paths) _ _, _]) _ _)) =
   replicate indent ' ' ++ name ++ " : " ++ show t ++ " = {\n    " ++
   joinWith "\n    " (map show paths) ++
@@ -368,7 +368,7 @@ showBinderIndented indent (name, Binder meta xobj) =
   then ""
   else replicate indent ' ' ++ name ++
        -- " (" ++ show (getPath xobj) ++ ")" ++
-       " : " ++ showMaybeTy (ty xobj)
+       " : " ++ showMaybeTy (ty xobj) ++ " :: " ++ show meta
        -- ++ " <" ++ getBinderDescription xobj ++ ">"
 
 -- | Get a list of pairs from a deftype declaration.

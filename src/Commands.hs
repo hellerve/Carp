@@ -24,6 +24,8 @@ import qualified Data.Map as Map
 import System.Process (callCommand, spawnCommand, waitForProcess)
 import Control.Exception
 
+import Debug.Trace
+
 type CommandCallback = [XObj] -> StateT Context IO (Either (FilePathPrintLength -> EvalError) XObj)
 
 data CarpException =
@@ -778,17 +780,23 @@ commandSaveDocsInternal [modulePath] = do
                Right okEnvs -> saveDocs (zip okPaths okEnvs)
        x ->
          return (Left (EvalError ("Invalid arg to save-docs-internal (expected list of symbols): " ++ pretty x) (info modulePath)))
-  where getEnvironmentForDocumentation :: Env -> SymPath -> Either (FilePathPrintLength -> EvalError) Env
+  where getEnvironmentForDocumentation :: Env -> SymPath -> Either (FilePathPrintLength -> EvalError) (String, Env)
         getEnvironmentForDocumentation env path =
           case lookupInEnv path env of
-            Just (_, Binder _ (XObj (Mod foundEnv) _ _)) ->
-              Right foundEnv
+            Just (_, Binder meta (XObj (Mod foundEnv) _ _)) ->
+              let metaMap = getMeta meta
+                  docString = case Map.lookup "doc" metaMap of
+                                Just (XObj (Str s) _ _) -> s
+                                Just found -> pretty found
+                                Nothing -> ""
+              in trace (show metaMap ++ showF (envBindings env)) (Right (docString, foundEnv))
             Just (_, Binder _ x) ->
               Left (EvalError ("I can’t generate documentation for `" ++ pretty x ++ "` because it isn’t a module") (info modulePath))
             Nothing ->
               Left (EvalError ("I can’t find the module `" ++ show path ++ "`") (info modulePath))
+        showF bindings = Map.foldr (\x y -> show x ++ "\n\n" ++ y) "" bindings
 
-saveDocs :: [(SymPath, Env)] -> StateT Context IO (Either a XObj)
+saveDocs :: [(SymPath, (String, Env))] -> StateT Context IO (Either a XObj)
 saveDocs pathsAndEnvs =
   do ctx <- get
      liftIO (saveDocsForEnvs (contextProj ctx) pathsAndEnvs)
