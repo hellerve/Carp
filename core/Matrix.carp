@@ -1,0 +1,82 @@
+(deftype (Mat33 a) [
+  xx a, xy a, xz a,
+  yx a, yy a, yz a,
+  zx a, zy a, zz a,
+])
+
+(defmodule Mat33
+  (doc zero "is a generic `zero` function of a `Mat33`. It will call `zero` on all
+its members, i.e. `zero` must be defined on them.")
+  (defn zero []
+    (init (zero) (zero) (zero) (zero) (zero) (zero) (zero) (zero) (zero)))
+
+  (doc create-scale "creates a matrix that scales by a constant factor `k`.")
+  (defn create-scale [k]
+    (init k (zero) (zero) (zero) k (zero) (zero) (zero) k))
+
+  (todo create-translate "How to push generic 1 in there?")
+  (doc create-translate "creates a matrix that translates a Vector2 by `x` and
+`y`.")
+  (defn create-translate [x y]
+    (init 1.0 (zero) (zero) (zero) 1.0 (zero) x y 1.0))
+
+  (todo create-rotate "Should we have a generic implementation of `sin` and `cos`?")
+  (doc create-rotate "creates a matrix that rotates a Vector2 by `theta?.")
+  (defn create-rotate [theta]
+    (let [st (Double.sin theta)
+          ct (Double.cos theta)]
+      (init ct st 0.0 (neg st) ct 0.0 0.0 0.0 1.0)))
+
+  (todo ident "How to push generic 1 in there?")
+  (doc ident "returns the identity matrix.")
+  (defn ident []
+    (create-scale 1.0))
+
+  (doc add "adds two matrices.")
+  (defn add [a b]
+    (init
+      (+ @(xx a) @(xx b)) (+ @(xy a) @(xy b)) (+ @(xz a) @(xz b))
+      (+ @(yx a) @(yx b)) (+ @(yy a) @(yy b)) (+ @(yz a) @(yz b))
+      (+ @(zx a) @(zx b)) (+ @(zy a) @(zy b)) (+ @(zz a) @(zz b))))
+
+  (doc sub "subtracts two matrices.")
+  (defn sub [a b]
+    (init
+      (- @(xx a) @(xx b)) (- @(xy a) @(xy b)) (- @(xz a) @(xz b))
+      (- @(yx a) @(yx b)) (- @(yy a) @(yy b)) (- @(yz a) @(yz b))
+      (- @(zx a) @(zx b)) (- @(zy a) @(zy b)) (- @(zz a) @(zz b))))
+
+  (doc mul "multiplies two matrices.")
+  (defn mul [a b]
+    (init
+      (* @(xx a) @(xx b)) (* @(xy a) @(xy b)) (* @(xz a) @(xz b))
+      (* @(yx a) @(yx b)) (* @(yy a) @(yy b)) (* @(yz a) @(yz b))
+      (* @(zx a) @(zx b)) (* @(zy a) @(zy b)) (* @(zz a) @(zz b))))
+
+  (doc multrans "multiplies two matrices<sup>T</sup>.")
+  (defn multrans [a b]
+    (init
+      (+ (* @(xx a) @(xx b)) (+ (* @(xy a) @(yx b)) (* @(xz a) @(zx b))))
+      (+ (* @(xx a) @(xy b)) (+ (* @(xy a) @(yy b)) (* @(xz a) @(zy b))))
+      (+ (* @(xx a) @(xz b)) (+ (* @(xy a) @(yz b)) (* @(xz a) @(zz b))))
+      (+ (* @(yx a) @(xx b)) (+ (* @(yy a) @(yx b)) (* @(yz a) @(zx b))))
+      (+ (* @(yx a) @(xy b)) (+ (* @(yy a) @(yy b)) (* @(yz a) @(zy b))))
+      (+ (* @(yx a) @(xz b)) (+ (* @(yy a) @(yz b)) (* @(yz a) @(zz b))))
+      (+ (* @(zx a) @(xx b)) (+ (* @(zy a) @(yx b)) (* @(zz a) @(zx b))))
+      (+ (* @(zx a) @(xy b)) (+ (* @(zy a) @(yy b)) (* @(zz a) @(zy b))))
+      (+ (* @(zx a) @(xz b)) (+ (* @(zy a) @(yz b)) (* @(zz a) @(zz b))))))
+
+  (doc scale "scales a matrix `m` by a constant factor `k`, element-wise.")
+  (defn scale [m k]
+    (init
+      (* @(xx m) k) (* @(xy m) k) (* @(xz m) k)
+      (* @(yx m) k) (* @(yy m) k) (* @(yz m) k)
+      (* @(zx m) k) (* @(zy m) k) (* @(zz m) k)))
+
+  (doc = "checks for matrix equality (by checking all members).")
+  (defn = [a b]
+    (and*
+      (= (xx a) (xx b)) (= (xy a) (xy b)) (= (xz a) (xz b))
+      (= (yx a) (yx b)) (= (yy a) (yy b)) (= (yz a) (yz b))
+      (= (zx a) (zx b)) (= (zy a) (zy b)) (= (zz a) (zz b))))
+)

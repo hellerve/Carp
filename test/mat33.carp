@@ -1,0 +1,87 @@
+(load "Matrix.carp")
+(load "Test.carp")
+
+(use-all Mat33 Test)
+
+(deftest test
+  (assert-equal test
+                &(init
+                  0.0 0.0 0.0
+                  0.0 0.0 0.0
+                  0.0 0.0 0.0)
+                &(zero)
+                "zero works I"
+  )
+  (assert-equal test
+                &(init
+                  0 0 0
+                  0 0 0
+                  0 0 0)
+                &(zero)
+                "zero works II"
+  )
+  (assert-equal test
+                &(init
+                  1.0 0.0 0.0
+                  0.0 1.0 0.0
+                  0.0 0.0 1.0)
+                &(ident)
+                "ident works"
+  )
+  (assert-equal test
+                &(init
+                  5.0 0.0 0.0
+                  0.0 5.0 0.0
+                  0.0 0.0 5.0)
+                &(create-scale 5.0)
+                "create-scale works I"
+  )
+  (assert-equal test
+                &(init
+                  5 0 0
+                  0 5 0
+                  0 0 5)
+                &(create-scale 5)
+                "create-scale works II"
+  )
+  (assert-equal test
+                &(init
+                  5  10 15
+                  20 25 30
+                  35 40 45)
+                &(scale &(init 1 2 3 4 5 6 7 8 9) 5)
+                "scale works"
+  )
+  (assert-equal test
+                &(init
+                  2 3  4
+                  5 6  7
+                  8 9 10)
+                &(add &(init 1 2 3 4 5 6 7 8 9) &(init 1 1 1 1 1 1 1 1 1))
+                "add works"
+  )
+  (assert-equal test
+                &(init
+                  0 1 2
+                  3 4 5
+                  6 7 8)
+                &(sub &(init 1 2 3 4 5 6 7 8 9) &(init 1 1 1 1 1 1 1 1 1))
+                "sub works"
+  )
+  (assert-equal test
+                &(init
+                   2  4  6
+                   8 10 12
+                  14 16 18)
+                &(mul &(init 1 2 3 4 5 6 7 8 9) &(init 2 2 2 2 2 2 2 2 2))
+                "mul works"
+  )
+  (assert-equal test
+                &(init
+                    30  36  42
+                    66  81  96
+                   102 126 150)
+                &(multrans &(init 1 2 3 4 5 6 7 8 9) &(init 1 2 3 4 5 6 7 8 9))
+                "multrans works"
+  )
+)

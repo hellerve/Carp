@@ -12,6 +12,10 @@
 (defmacro sig [name signature]
   (list 'meta-set! name "sig" signature))
 
+(doc todo "Annotate a binding with a TODO.")
+(defmacro todo [name signature]
+  (list 'meta-set! name "todo" signature))
+
 (doc print-sig "Print the annotated signature for a binding.")
 (defmacro print-sig [name]
   (list 'macro-log (list 'meta name "sig")))
