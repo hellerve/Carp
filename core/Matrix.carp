@@ -1,3 +1,5 @@
+(load "Vector.carp")
+
 (deftype (Mat33 a) [
   xx a, xy a, xz a,
   yx a, yy a, yz a,
@@ -31,6 +33,38 @@ its members, i.e. `zero` must be defined on them.")
   (doc ident "returns the identity matrix.")
   (defn ident []
     (create-scale 1.0))
+
+  (todo inverse "How to push generic 1 in there?")
+  (doc inverse "calculates the inverse matrix to `m`. If the determinant of
+the matrix is `0.0`, `Maybe.Nothing` will be returned.")
+  (defn inverse [m]
+    (let [xx @(xx m)
+          xy @(xy m)
+          xz @(xz m)
+          yx @(yx m)
+          yy @(yy m)
+          yz @(yz m)
+          zx @(zx m)
+          zy @(zy m)
+          zz @(zz m)
+          vxx (- (* yy zz) (* yz zy))
+          vxy (- (* xz zy) (* xy zz))
+          vxz (- (* xy yz) (* xz yy))
+          vyx (- (* yz zx) (* yx zz))
+          vyy (- (* xx zz) (* xz zx))
+          vyz (- (* xz yx) (* xx yz))
+          vzx (- (* yx zy) (* yy zx))
+          vzy (- (* xy zx) (* xx zy))
+          vzz (- (* xx yy) (* xy yx))
+          fdet (+ (* xx vxx) (+ (* xy vyx) (* xz vzx)))]
+      (if (= fdet (zero))
+        (Maybe.Nothing)
+        (let [finvdet (/ 1.0 fdet)]
+          (Maybe.Just
+            (Mat33.init
+              (* finvdet vxx) (* finvdet vxy) (* finvdet vxz)
+              (* finvdet vyx) (* finvdet vyy) (* finvdet vyz)
+              (* finvdet vzx) (* finvdet vzy) (* finvdet vzz)))))))
 
   (doc add "adds two matrices.")
   (defn add [a b]
@@ -72,6 +106,78 @@ its members, i.e. `zero` must be defined on them.")
       (* @(xx m) k) (* @(xy m) k) (* @(xz m) k)
       (* @(yx m) k) (* @(yy m) k) (* @(yz m) k)
       (* @(zx m) k) (* @(zy m) k) (* @(zz m) k)))
+
+  (doc col "gets a column—as a `Vector3`—from a matrix `m` by index. Valid
+values are `0` to `2`.
+
+Returns `Maybe.Nothing` if an invalid index is passed.")
+  (defn col [m i]
+    (case i
+      0 (Maybe.Just (Vector3.init @(xx m) @(yx m) @(zx m)))
+      1 (Maybe.Just (Vector3.init @(xy m) @(yy m) @(zy m)))
+      2 (Maybe.Just (Vector3.init @(xz m) @(yz m) @(zz m)))
+      (Maybe.Nothing)))
+
+  (doc row "gets a row—as a `Vector3`—from a matrix `m` by index. Valid values
+are `0` to `2`.
+
+Returns `Maybe.Nothing` if an invalid index is passed.")
+  (defn row [m i]
+    (case i
+      0 (Maybe.Just (Vector3.init @(xx m) @(xy m) @(xz m)))
+      1 (Maybe.Just (Vector3.init @(yx m) @(yy m) @(yz m)))
+      2 (Maybe.Just (Vector3.init @(zx m) @(zy m) @(zz m)))
+      (Maybe.Nothing)))
+
+  (doc diag "gets the diagonal of a matrix `m` as a `Vector3`.")
+  (defn diag [m]
+    (Vector3.init @(xx m) @(yy m) @(zz m)))
+
+  (doc nth "gets an element in the matrix `m` by the row and column indices `i`
+and `j`. Valid values are `0` to `2` for each.
+
+Returns `Maybe.Nothing` if an invalid index is passed.")
+  (defn nth [m i j]
+    (case (+ (* 3 i) j)
+      0 @(xx m)
+      1 @(xy m)
+      2 @(xz m)
+      3 @(yx m)
+      4 @(yy m)
+      5 @(yz m)
+      6 @(zx m)
+      7 @(zy m)
+      8 @(zz m)))
+
+  (doc apply "applies a transformation matrix `m` to a `Vector3` `v`.")
+  (defn apply [m v]
+    (let [x @(Vector3.x v)
+          y @(Vector3.y v)
+          z @(Vector3.z v)]
+      (Vector3.init
+        (+ (* @(xx m) x) (+ (* @(xy m) y) (* @(xz m) z)))
+        (+ (* @(yx m) x) (+ (* @(yy m) y) (* @(yz m) z)))
+        (+ (* @(zx m) x) (+ (* @(zy m) y) (* @(zz m) z))))))
+
+  (doc apply-left "applies a transformation matrix `m` to a `Vector3` `v`,
+applied on the left.")
+  (defn apply-left [m v]
+    (let [x @(Vector3.x v)
+          y @(Vector3.y v)
+          z @(Vector3.z v)]
+      (Vector3.init
+        (+ (* @(xx m) x) (+ (* @(yx m) y) (* @(zx m) z)))
+        (+ (* @(xy m) x) (+ (* @(yy m) y) (* @(zy m) z)))
+        (+ (* @(xz m) x) (+ (* @(yz m) y) (* @(zz m) z))))))
+
+  (doc transform-point "transforms a `Vector2` representing a point by a matrix
+`m`.")
+  (defn transform-point [a v]
+    (let [x @(Vector2.x v)
+          y @(Vector2.y v)]
+      (Vector2.init
+        (+ (* @(xx m) x) (+ (* @(yx m) y) @(zx m)))
+        (+ (* @(xy m) x) (+ (* @(yy m) y) @(zy m) z)))))
 
   (doc = "checks for matrix equality (by checking all members).")
   (defn = [a b]
