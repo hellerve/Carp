@@ -7,8 +7,8 @@
 ])
 
 (defmodule Mat33
-  (doc zero "is a generic `zero` function of a `Mat33`. It will call `zero` on all
-its members, i.e. `zero` must be defined on them.")
+  (doc zero "is a generic `zero` function of a `Mat33`. It will call `zero` on
+all its members, i.e. `zero` must be defined on them.")
   (defn zero []
     (init (zero) (zero) (zero) (zero) (zero) (zero) (zero) (zero) (zero)))
 
@@ -172,12 +172,12 @@ applied on the left.")
 
   (doc transform-point "transforms a `Vector2` representing a point by a matrix
 `m`.")
-  (defn transform-point [a v]
+  (defn transform-point [m v]
     (let [x @(Vector2.x v)
           y @(Vector2.y v)]
       (Vector2.init
         (+ (* @(xx m) x) (+ (* @(yx m) y) @(zx m)))
-        (+ (* @(xy m) x) (+ (* @(yy m) y) @(zy m) z)))))
+        (+ (* @(xy m) x) (+ (* @(yy m) y) @(zy m))))))
 
   (doc = "checks for matrix equality (by checking all members).")
   (defn = [a b]
@@ -185,4 +185,34 @@ applied on the left.")
       (= (xx a) (xx b)) (= (xy a) (xy b)) (= (xz a) (xz b))
       (= (yx a) (yx b)) (= (yy a) (yy b)) (= (yz a) (yz b))
       (= (zx a) (zx b)) (= (zy a) (zy b)) (= (zz a) (zz b))))
+)
+
+(deftype (Mat44 a) [
+  ww a, wx a, wy a, wz a,
+  xw a, xx a, xy a, xz a,
+  yw a, yx a, yy a, yz a,
+  zw a, zx a, zy a, zz a,
+])
+
+(defmodule Mat44
+  (doc zero "is a generic `zero` function of a `Mat44`. It will call `zero` on
+all its members, i.e. `zero` must be defined on them.")
+  (defn zero []
+    (init (zero) (zero) (zero) (zero)
+          (zero) (zero) (zero) (zero)
+          (zero) (zero) (zero) (zero)
+          (zero) (zero) (zero) (zero)))
+
+  (doc create-scale "creates a matrix that scales by a constant factor `k`.")
+  (defn create-scale [k]
+    (init
+      k (zero) (zero) (zero)
+      (zero) k (zero) (zero)
+      (zero) (zero) k (zero)
+      (zero) (zero) (zero) k))
+
+  (todo ident "How to get generic 1 in there?")
+  (doc ident "returns the identity matrix.")
+  (defn ident []
+    (create-scale 1.0))
 )
