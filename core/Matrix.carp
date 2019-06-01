@@ -80,6 +80,13 @@ the matrix is `0.0`, `Maybe.Nothing` will be returned.")
       (- @(yx a) @(yx b)) (- @(yy a) @(yy b)) (- @(yz a) @(yz b))
       (- @(zx a) @(zx b)) (- @(zy a) @(zy b)) (- @(zz a) @(zz b))))
 
+  (doc map "maps all elements in a matric `m` to a function `f`.")
+  (defn map [m f]
+    (init
+      (f @(xx m)) (f @(xy m)) (f @(xz m))
+      (f @(yx m)) (f @(yy m)) (f @(yz m))
+      (f @(zx m)) (f @(zy m)) (f @(zz m))))
+
   (doc mul "multiplies two matrices.")
   (defn mul [a b]
     (init
@@ -215,4 +222,28 @@ all its members, i.e. `zero` must be defined on them.")
   (doc ident "returns the identity matrix.")
   (defn ident []
     (create-scale 1.0))
+
+  (doc add "adds two matrices.")
+  (defn add [a b]
+    (init
+      (+ @(ww a) @(ww b)) (+ @(wx a) @(wx b)) (+ @(wy a) @(wy b)) (+ @(wz a) @(xz b))
+      (+ @(xw a) @(xw b)) (+ @(xx a) @(xx b)) (+ @(xy a) @(xy b)) (+ @(xz a) @(xz b))
+      (+ @(yw a) @(yw b)) (+ @(yx a) @(yx b)) (+ @(yy a) @(yy b)) (+ @(yz a) @(yz b))
+      (+ @(zw a) @(zw b)) (+ @(zx a) @(zx b)) (+ @(zy a) @(zy b)) (+ @(zz a) @(zz b))))
+
+  (doc sub "subtracts two matrices.")
+  (defn sub [a b]
+    (init
+      (- @(ww a) @(ww b)) (- @(wx a) @(wx b)) (- @(wy a) @(wy b)) (- @(wz a) @(xz b))
+      (- @(xw a) @(xw b)) (- @(xx a) @(xx b)) (- @(xy a) @(xy b)) (- @(xz a) @(xz b))
+      (- @(yw a) @(yw b)) (- @(yx a) @(yx b)) (- @(yy a) @(yy b)) (- @(yz a) @(yz b))
+      (- @(zw a) @(zw b)) (- @(zx a) @(zx b)) (- @(zy a) @(zy b)) (- @(zz a) @(zz b))))
+
+  (doc map "maps all elements in a matric `m` to a function `f`.")
+  (defn map [m f]
+    (init
+      (f @(ww m)) (f @(wx m)) (f @(wy m)) (f @(wz m))
+      (f @(xw m)) (f @(xx m)) (f @(xy m)) (f @(xz m))
+      (f @(yw m)) (f @(yx m)) (f @(yy m)) (f @(yz m))
+      (f @(zw m)) (f @(zx m)) (f @(zy m)) (f @(zz m))))
 )
