@@ -249,8 +249,47 @@ the matrix is `0.0`, `Maybe.Nothing` will be returned.")
          ]
       (if (= fdet (zero))
         (Maybe.Nothing)
-        (let [finvdet (/ 1.0 fdet)]
-          (Maybe.Just @"TODO")))))
+        (let [finvdet (/ 1.0 fdet)
+              dww (* t0 finvdet)
+              dxw (* t1 finvdet)
+              dyw (* t2 finvdet)
+              dzw (* t3 finvdet)
+
+              dwx (neg (* finvdet (+ (- (* v5 xy) (* v4 xy)) (* v3 xz))))
+              dxx      (* finvdet (+ (- (* v5 xx) (* v2 xy)) (* v1 xz)))
+              dyx (neg (* finvdet (+ (- (* v4 xx) (* v2 xy)) (* v0 xz))))
+              dzx      (* finvdet (+ (- (* v3 xx) (* v1 xy)) (* v0 xy)))
+
+              v0 (- (* xw zx) (* xx zw))
+              v1 (- (* xw zy) (* xy zw))
+              v2 (- (* xw zz) (* xz zw))
+              v3 (- (* xx zy) (* xy zx))
+              v4 (- (* xx zz) (* xz zx))
+              v5 (- (* xy zz) (* xz zy))
+
+              dwy      (* finvdet (+ (- (* v5 xy) (* v4 xy)) (* v3 xz)))
+              dxy (neg (* finvdet (+ (- (* v5 xx) (* v2 xy)) (* v1 xz))))
+              dyy      (* finvdet (+ (- (* v4 xx) (* v2 xy)) (* v0 xz)))
+              dzy (neg (* finvdet (+ (- (* v3 xx) (* v1 xy)) (* v0 xy))))
+
+              v0- (- (* yw zx) (* yx zw))
+              v1- (- (* yw zy) (* yy zw))
+              v2- (- (* yw zz) (* yz zw))
+              v3- (- (* yx zy) (* yy zx))
+              v4- (- (* yx zz) (* yz zx))
+              v5- (- (* yy zz) (* yz zy))
+
+              dwz (neg (* finvdet (+ (- (* v5- xy) (* v4- xy)) (* v3- xz))))
+              dxz      (* finvdet (+ (- (* v5- xx) (* v2- xy)) (* v1- xz)))
+              dyz (neg (* finvdet (+ (- (* v4- xx) (* v2- xy)) (* v0- xz))))
+              dzz      (* finvdet (+ (- (* v3- xx) (* v1- xy)) (* v0- xy)))
+             ]
+          (Maybe.Just
+            (init
+              dww dwx dwy dwz
+              dxw dxx dxy dxz
+              dyw dyx dyy dyz
+              dzw dzx dzy dzz))))))
 
 
   (doc add "adds two matrices.")
