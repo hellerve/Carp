@@ -224,6 +224,35 @@ all its members, i.e. `zero` must be defined on them.")
   (defn ident []
     (create-scale 1.0))
 
+  (todo inverse "How to push generic 1 in there?")
+  (doc inverse "calculates the inverse matrix to `m`. If the determinant of
+the matrix is `0.0`, `Maybe.Nothing` will be returned.")
+  (defn inverse [m]
+    (let [ww @(ww m) wx @(wx m) wy @(wy m) wz @(wz m)
+          xw @(xw m) xx @(xx m) xy @(xy m) xz @(xz m)
+          yw @(yw m) yx @(yx m) yy @(yy m) yz @(yz m)
+          zw @(zw m) zx @(zx m) zy @(zy m) zz @(zz m)
+
+          v0 (- (* yw zx) (* yx zw))
+          v1 (- (* yw zy) (* yy zw))
+          v2 (- (* yw zz) (* yz zw))
+          v3 (- (* yx zy) (* yy zx))
+          v4 (- (* yx zz) (* yz zx))
+          v5 (- (* yy zz) (* yz zy))
+
+          t0      (+ (- (* v5 xx) (* v4 xy)) (* v3 xz))
+          t1 (neg (+ (- (* v5 xw) (* v2 xy)) (* v1 xz)))
+          t2      (+ (- (* v4 xw) (* v2 xx)) (* v0 xz))
+          t3 (neg (+ (- (* v3 xw) (* v1 xx)) (* v0 xy)))
+
+          fdet (+ (* t0 ww) (+ (* t1 wx) (+ (* t2 wy) (* t3 wz))))
+         ]
+      (if (= fdet (zero))
+        (Maybe.Nothing)
+        (let [finvdet (/ 1.0 fdet)]
+          (Maybe.Just @"TODO")))))
+
+
   (doc add "adds two matrices.")
   (defn add [a b]
     (init
@@ -240,6 +269,71 @@ all its members, i.e. `zero` must be defined on them.")
       (- @(yw a) @(yw b)) (- @(yx a) @(yx b)) (- @(yy a) @(yy b)) (- @(yz a) @(yz b))
       (- @(zw a) @(zw b)) (- @(zx a) @(zx b)) (- @(zy a) @(zy b)) (- @(zz a) @(zz b))))
 
+  (doc mul "multiplies two matrices.")
+  (defn mul [a b]
+    (init
+      (* @(ww a) @(ww b)) (* @(wx a) @(wx b)) (* @(wy a) @(wy b)) (* @(wz a) @(xz b))
+      (* @(xw a) @(xw b)) (* @(xx a) @(xx b)) (* @(xy a) @(xy b)) (* @(xz a) @(xz b))
+      (* @(yw a) @(yw b)) (* @(yx a) @(yx b)) (* @(yy a) @(yy b)) (* @(yz a) @(yz b))
+      (* @(zw a) @(zw b)) (* @(zx a) @(zx b)) (* @(zy a) @(zy b)) (* @(zz a) @(zz b))))
+
+  (doc multrans "multiplies two matrices<sup>T</sup>.")
+  (defn multrans [a b]
+    (let [aww @(ww a) bww @(ww b) awx @(wx a) bwx @(wx b)
+          awy @(wy a) bwy @(wy b) awz @(wz a) bwz @(wz b)
+          axw @(xw a) bxw @(xw b) axx @(xx a) bxx @(xx b)
+          axy @(xy a) bxy @(xy b) axz @(xz a) bxz @(xz b)
+          ayw @(yw a) byw @(yw b) ayx @(yx a) byx @(yx b)
+          ayy @(yy a) byy @(yy b) ayz @(yz a) byz @(yz b)
+          azw @(zw a) bzw @(zw b) azx @(zx a) bzx @(zx b)
+          azy @(zy a) bzy @(zy b) azz @(zz a) bzz @(zz b)
+         ]
+    (init
+      (+ (* aww bww) (+ (* awx bxw) (+ (* awy byw) (* awz bzw))))
+      (+ (* aww bwx) (+ (* awx bxx) (+ (* awy byx) (* awz bzx))))
+      (+ (* aww bwy) (+ (* awx bxy) (+ (* awy byy) (* awz bzy))))
+      (+ (* aww bwz) (+ (* awx bxz) (+ (* awy byz) (* awz bzz))))
+      (+ (* axw bww) (+ (* axx bxw) (+ (* axy byw) (* axz bzw))))
+      (+ (* axw bwx) (+ (* axx bxx) (+ (* axy byx) (* axz bzx))))
+      (+ (* axw bwy) (+ (* axx bxy) (+ (* axy byy) (* axz bzy))))
+      (+ (* axw bwz) (+ (* axx bxz) (+ (* axy byz) (* axz bzz))))
+      (+ (* ayw bww) (+ (* ayx bxw) (+ (* ayy byw) (* ayz bzw))))
+      (+ (* ayw bwx) (+ (* ayx bxx) (+ (* ayy byx) (* ayz bzx))))
+      (+ (* ayw bwy) (+ (* ayx bxy) (+ (* ayy byy) (* ayz bzy))))
+      (+ (* ayw bwz) (+ (* ayx bxz) (+ (* ayy byz) (* ayz bzz))))
+      (+ (* azw bww) (+ (* azx bxw) (+ (* azy byw) (* azz bzw))))
+      (+ (* azw bwx) (+ (* azx bxx) (+ (* azy byx) (* azz bzx))))
+      (+ (* azw bwy) (+ (* azx bxy) (+ (* azy byy) (* azz bzy))))
+      (+ (* azw bwz) (+ (* azx bxz) (+ (* azy byz) (* azz bzz)))))))
+
+  (doc col "gets a column—as a `(VectorN 4)`—from a matrix `m` by index. Valid
+values are `0` to `3`.
+
+Returns `Maybe.Nothing` if an invalid index is passed.")
+  (defn col [m i]
+    (case i
+      0 (Maybe.Just (VectorN.init 4 [@(ww m) @(xw m) @(yw m) @(zw m)]))
+      1 (Maybe.Just (VectorN.init 4 [@(wx m) @(xx m) @(yx m) @(zx m)]))
+      2 (Maybe.Just (VectorN.init 4 [@(wy m) @(xy m) @(yy m) @(zy m)]))
+      3 (Maybe.Just (VectorN.init 4 [@(wz m) @(xz m) @(yz m) @(zz m)]))
+      (Maybe.Nothing)))
+
+  (doc row "gets a row—as a `(VectorN 4)`—from a matrix `m` by index. Valid
+values are `0` to `3`.
+
+Returns `Maybe.Nothing` if an invalid index is passed.")
+  (defn row [m i]
+    (case i
+      0 (Maybe.Just (VectorN.init 4 [@(ww m) @(wx m) @(wy m) @(wz m)]))
+      1 (Maybe.Just (VectorN.init 4 [@(xw m) @(xx m) @(xy m) @(xz m)]))
+      2 (Maybe.Just (VectorN.init 4 [@(yw m) @(yx m) @(yy m) @(yz m)]))
+      3 (Maybe.Just (VectorN.init 4 [@(zw m) @(zx m) @(zy m) @(zz m)]))
+      (Maybe.Nothing)))
+
+  (doc diag "gets the diagonal of a matrix `m` as a `(VectorN 4)`.")
+  (defn diag [m]
+    (VectorN.init 4 [@(ww m) @(xx m) @(yy m) @(zz m)]))
+
   (doc map "maps all elements in a matric `m` to a function `f`.")
   (defn map [m f]
     (init
@@ -247,4 +341,76 @@ all its members, i.e. `zero` must be defined on them.")
       (f @(xw m)) (f @(xx m)) (f @(xy m)) (f @(xz m))
       (f @(yw m)) (f @(yx m)) (f @(yy m)) (f @(yz m))
       (f @(zw m)) (f @(zx m)) (f @(zy m)) (f @(zz m))))
+
+  (doc nth "gets an element in the matrix `m` by the row and column indices `i`
+and `j`. Valid values are `0` to `3` for each.
+
+Returns `Maybe.Nothing` if an invalid index is passed.")
+  (defn nth [m i j]
+    (case (+ (* 4 i) j)
+      0  (Maybe.Just @(ww m))
+      1  (Maybe.Just @(wx m))
+      2  (Maybe.Just @(wy m))
+      3  (Maybe.Just @(wz m))
+      4  (Maybe.Just @(xw m))
+      5  (Maybe.Just @(xx m))
+      6  (Maybe.Just @(xy m))
+      7  (Maybe.Just @(xz m))
+      8  (Maybe.Just @(yw m))
+      9  (Maybe.Just @(yx m))
+      10 (Maybe.Just @(yy m))
+      11 (Maybe.Just @(yz m))
+      12 (Maybe.Just @(zw m))
+      13 (Maybe.Just @(zx m))
+      14 (Maybe.Just @(zy m))
+      15 (Maybe.Just @(zz m))
+      (Maybe.Nothing)))
+
+  (doc apply "applies a transformation matrix `m` to a `(VectorN 4)` `v`. If a
+vector of wrong dimensionality is passed, this function returns a
+`Result.Error`.")
+  (defn apply [m v]
+    (if (/= @(VectorN.n v) 4)
+      (Result.Error
+        (fmt "Mat44.apply expected a vector of dimension 4, but got %d"
+             (VectorN.n v)))
+      (let [w @(VectorN.nth-unsafe v 0)
+            x @(VectorN.nth-unsafe v 1)
+            y @(VectorN.nth-unsafe v 2)
+            z @(VectorN.nth-unsafe v 3)]
+        (Result.Success
+          (VectorN.init 4 [
+            (+ (* @(ww m) x) (+ (* @(xw m) y) (+ (* @(yw m) z) (* @(zw m) w))))
+            (+ (* @(wx m) x) (+ (* @(xx m) y) (+ (* @(yx m) z) (* @(zx m) w))))
+            (+ (* @(wy m) x) (+ (* @(xy m) y) (+ (* @(yy m) z) (* @(zy m) w))))
+            (+ (* @(wz m) x) (+ (* @(xz m) y) (+ (* @(yz m) z) (* @(zz m) w))))
+          ])))))
+
+  (doc apply-left "applies a transformation matrix `m` to a `(VectorN 4)` `v`,
+applied to the left. If a vector of wrong dimensionality is passed, this
+function returns a `Result.Error`.")
+  (defn apply-left [m v]
+    (if (/= @(VectorN.n v) 4)
+      (Result.Error
+        (fmt "Mat44.apply expected a vector of dimension 4, but got %d"
+             (VectorN.n v)))
+      (let [w @(VectorN.nth-unsafe v 0)
+            x @(VectorN.nth-unsafe v 1)
+            y @(VectorN.nth-unsafe v 2)
+            z @(VectorN.nth-unsafe v 3)]
+        (Result.Success
+          (VectorN.init 4 [
+            (+ (* @(ww m) x) (+ (* @(wx m) y) (+ (* @(wy m) z) (* @(wz m) w))))
+            (+ (* @(xw m) x) (+ (* @(xx m) y) (+ (* @(xy m) z) (* @(xz m) w))))
+            (+ (* @(yw m) x) (+ (* @(yx m) y) (+ (* @(yy m) z) (* @(yz m) w))))
+            (+ (* @(zw m) x) (+ (* @(zx m) y) (+ (* @(zy m) z) (* @(zz m) w))))
+          ])))))
+
+  (doc = "checks for matrix equality (by checking all members).")
+  (defn = [a b]
+    (and*
+      (= (ww a) (ww b)) (= (wx a) (wx b)) (= (wy a) (wy b)) (= (wz a) (wz b))
+      (= (xw a) (xw b)) (= (xx a) (xx b)) (= (xy a) (xy b)) (= (xz a) (xz b))
+      (= (yw a) (yw b)) (= (yx a) (yx b)) (= (yy a) (yy b)) (= (yz a) (yz b))
+      (= (zw a) (zw b)) (= (zx a) (zx b)) (= (zy a) (zy b)) (= (zz a) (zz b))))
 )

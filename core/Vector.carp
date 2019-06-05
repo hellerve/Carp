@@ -286,4 +286,18 @@
     (Maybe.apply (zip - b a)
       (fn [x] (init @(n a) @(v &(zip- * &(Array.replicate @(n a) &amnt)
                            (v &x)))))))
+
+  (doc nth "gets the `n`th element of a vector `v`. If the index is invalid for
+the vector, a `Result.Error` is returned.")
+  (defn nth [v n]
+    (if (<= @(VectorN.n v) n)
+      (Result.Error
+        (fmt "VectorN.nth was requested to get the %dth element of a vector of size %d."
+            n (VectorN.n v)))
+      (Result.Success @(Array.nth (VectorN.v v) n))))
+
+  (doc nth-unsafe "gets the `n`th element of a vector `v`. If the index is
+invalid for the vector, this will result in a buffer overflow.")
+  (defn nth-unsafe [v n]
+    @(Array.nth (VectorN.v v) n))
 )
