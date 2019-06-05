@@ -24,8 +24,8 @@
           (/ @(y a) n)))
 
   (defn = [a b]
-    (and (Double.= @(x a) @(x b))
-         (Double.= @(y a) @(y b))))
+    (and (= @(x a) @(x b))
+         (= @(y a) @(y b))))
 
   (defn /= [a b]
     (not (= a b)))
@@ -105,9 +105,9 @@
     (init (random-between 0.0 1.0) (random-between 0.0 1.0) (random-between 0.0 1.0)))
 
   (defn = [a b]
-    (and (Double.= @(x a) @(x b))
-         (and (Double.= @(y a) @(y b))
-              (Double.= @(z a) @(z b)))))
+    (and (= @(x a) @(x b))
+         (and (= @(y a) @(y b))
+              (= @(z a) @(z b)))))
 
   (defn /= [a b]
     (not (= a b)))

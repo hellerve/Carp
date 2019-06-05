@@ -83,9 +83,9 @@ the matrix is `0.0`, `Maybe.Nothing` will be returned.")
   (doc map "maps all elements in a matric `m` to a function `f`.")
   (defn map [m f]
     (init
-      (f @(xx m)) (f @(xy m)) (f @(xz m))
-      (f @(yx m)) (f @(yy m)) (f @(yz m))
-      (f @(zx m)) (f @(zy m)) (f @(zz m))))
+      (~f @(xx m)) (~f @(xy m)) (~f @(xz m))
+      (~f @(yx m)) (~f @(yy m)) (~f @(yz m))
+      (~f @(zx m)) (~f @(zy m)) (~f @(zz m))))
 
   (doc mul "multiplies two matrices.")
   (defn mul [a b]
@@ -376,10 +376,10 @@ Returns `Maybe.Nothing` if an invalid index is passed.")
   (doc map "maps all elements in a matric `m` to a function `f`.")
   (defn map [m f]
     (init
-      (f @(ww m)) (f @(wx m)) (f @(wy m)) (f @(wz m))
-      (f @(xw m)) (f @(xx m)) (f @(xy m)) (f @(xz m))
-      (f @(yw m)) (f @(yx m)) (f @(yy m)) (f @(yz m))
-      (f @(zw m)) (f @(zx m)) (f @(zy m)) (f @(zz m))))
+      (~f @(ww m)) (~f @(wx m)) (~f @(wy m)) (~f @(wz m))
+      (~f @(xw m)) (~f @(xx m)) (~f @(xy m)) (~f @(xz m))
+      (~f @(yw m)) (~f @(yx m)) (~f @(yy m)) (~f @(yz m))
+      (~f @(zw m)) (~f @(zx m)) (~f @(zy m)) (~f @(zz m))))
 
   (doc nth "gets an element in the matrix `m` by the row and column indices `i`
 and `j`. Valid values are `0` to `3` for each.
