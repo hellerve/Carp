@@ -1,0 +1,220 @@
+(load "Matrix.carp")
+(load "Test.carp")
+
+(use-all Mat44 Test)
+
+(deftest test
+  (assert-equal test
+                &(init
+                  0.0 0.0 0.0 0.0
+                  0.0 0.0 0.0 0.0
+                  0.0 0.0 0.0 0.0
+                  0.0 0.0 0.0 0.0)
+                &(zero)
+                "zero works I"
+  )
+  (assert-equal test
+                &(init
+                  0 0 0 0
+                  0 0 0 0
+                  0 0 0 0
+                  0 0 0 0)
+                &(zero)
+                "zero works II"
+  )
+  (assert-equal test
+                &(init
+                  1.0 0.0 0.0 0.0
+                  0.0 1.0 0.0 0.0
+                  0.0 0.0 1.0 0.0
+                  0.0 0.0 0.0 1.0)
+                &(ident)
+                "ident works"
+  )
+  (assert-equal test
+                &(init
+                  5.0 0.0 0.0 0.0
+                  0.0 5.0 0.0 0.0
+                  0.0 0.0 5.0 0.0
+                  0.0 0.0 0.0 5.0)
+                &(create-scale 5.0)
+                "create-scale works I"
+  )
+  (assert-equal test
+                &(init
+                  5 0 0 0
+                  0 5 0 0
+                  0 0 5 0
+                  0 0 0 5)
+                &(create-scale 5)
+                "create-scale works II"
+  )
+  (assert-equal test
+                &(init
+                  0.2 0.0 0.0 0.0
+                  0.0 0.2 0.0 0.0
+                  0.0 0.0 0.2 0.0
+                  0.0 0.0 0.0 0.2)
+                &(Maybe.unsafe-from (inverse &(create-scale 5.0)))
+                "inverse works I"
+  )
+  (assert-true test
+                (Maybe.nothing? &(inverse &(zero)))
+                "inverse works II"
+  )
+  (assert-equal test
+                &(init
+                  5  10 15 20
+                  25 30 35 40
+                  45 50 55 60
+                  65 70 75 80)
+                &(scale &(init 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16) 5)
+                "scale works"
+  )
+  (assert-equal test
+                &(init
+                   2  3  4  5
+                   6  7  8  9
+                  10 11 12 13
+                  14 15 16 17)
+                &(add
+                  &(init 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)
+                  &(init 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
+                "add works"
+  )
+  (assert-equal test
+                &(init
+                   0  1  2  3
+                   4  5  6  7
+                   8  9 10 11
+                  12 13 14 15)
+                &(sub
+                  &(init 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)
+                  &(init 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
+                "sub works"
+  )
+  (assert-equal test
+                &(init
+                    2  4  6  8
+                   10 12 14 16
+                   18 20 22 24
+                   26 28 30 32)
+                &(mul
+                  &(init 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16)
+                  &(init 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2))
+                "mul works"
+  )
+  ;(assert-equal test
+  ;              &(init
+  ;                  30  36  42
+  ;                  66  81  96
+  ;                 102 126 150)
+  ;              &(multrans &(init 1 2 3 4 5 6 7 8 9) &(init 1 2 3 4 5 6 7 8 9))
+  ;              "multrans works"
+  ;)
+  ;(assert-equal test
+  ;              &(Vector3.init 1 2 3)
+  ;              &(Maybe.unsafe-from
+  ;                (col
+  ;                  &(init
+  ;                    1 0 0
+  ;                    2 0 0
+  ;                    3 0 0)
+  ;                   0))
+  ;              "col works I"
+  ;)
+  ;(assert-true test
+  ;             (Maybe.nothing? &(the (Maybe (Vector3 Int)) (col &(zero) 4)))
+  ;             "col works II"
+  ;)
+  ;(assert-equal test
+  ;              &(Vector3.init 1 2 3)
+  ;              &(Maybe.unsafe-from
+  ;                (row
+  ;                  &(init
+  ;                    1 2 3
+  ;                    0 0 0
+  ;                    0 0 0)
+  ;                  0))
+  ;              "row works I"
+  ;)
+  ;(assert-true test
+  ;             (Maybe.nothing? &(the (Maybe (Vector3 Int)) (row &(zero) 4)))
+  ;             "row works II"
+  ;)
+  ;(assert-equal test
+  ;             &(Vector3.init 4.0 3.0 2.0)
+  ;             &(diag
+  ;              &(init
+  ;                  4.0 0.0 0.0
+  ;                  0.0 3.0 0.0
+  ;                  0.0 0.0 2.0))
+  ;             "diag works"
+  ;)
+  ;(assert-equal test
+  ;              &(init
+  ;                2 3  4
+  ;                5 6  7
+  ;                8 9 10)
+  ;              &(map
+  ;                &(init
+  ;                  1.0 2.0 3.0
+  ;                  4.0 5.0 6.0
+  ;                  7.0 8.0 9.0)
+  ;                &(fn [x] (Int.inc (to-int x))))
+  ;              "map works"
+  ;)
+  ;(assert-equal test
+  ;              &(Maybe.Just 3.0)
+  ;              &(nth
+  ;                &(init
+  ;                  1.0 2.0 3.0
+  ;                  4.0 5.0 6.0
+  ;                  7.0 8.0 9.0)
+  ;                0 2
+  ;              )
+  ;              "nth works I"
+  ;)
+  ;(assert-equal test
+  ;              &(Maybe.Nothing)
+  ;              &(nth
+  ;                &(init
+  ;                  1.0 2.0 3.0
+  ;                  4.0 5.0 6.0
+  ;                  7.0 8.0 9.0)
+  ;                0 -1
+  ;              )
+  ;              "nth works II"
+  ;)
+  ;(assert-equal test
+  ;              &(Maybe.Nothing)
+  ;              &(nth
+  ;                &(init
+  ;                  1.0 2.0 3.0
+  ;                  4.0 5.0 6.0
+  ;                  7.0 8.0 9.0)
+  ;                4 1
+  ;              )
+  ;              "nth works III"
+  ;)
+  ;(assert-equal test
+  ;              &(Vector3.init 14.0 32.0 50.0)
+  ;              &(apply
+  ;                &(init
+  ;                  1.0 2.0 3.0
+  ;                  4.0 5.0 6.0
+  ;                  7.0 8.0 9.0)
+  ;                &(Vector3.init 1.0 2.0 3.0))
+  ;              "apply works"
+  ;)
+  ;(assert-equal test
+  ;              &(Vector3.init 30.0 36.0 42.0)
+  ;              &(apply-left
+  ;                &(init
+  ;                  1.0 2.0 3.0
+  ;                  4.0 5.0 6.0
+  ;                  7.0 8.0 9.0)
+  ;                &(Vector3.init 1.0 2.0 3.0))
+  ;              "apply-left works"
+  ;)
+)

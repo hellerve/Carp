@@ -345,6 +345,14 @@ the matrix is `0.0`, `Maybe.Nothing` will be returned.")
       (+ (* azw bwy) (+ (* azx bxy) (+ (* azy byy) (* azz bzy))))
       (+ (* azw bwz) (+ (* azx bxz) (+ (* azy byz) (* azz bzz)))))))
 
+  (doc scale "scales a matrix `m` by a constant factor `k`, element-wise.")
+  (defn scale [m k]
+    (init
+      (* @(ww m) k) (* @(wx m) k) (* @(wy m) k) (* @(wz m) k)
+      (* @(xw m) k) (* @(xx m) k) (* @(xy m) k) (* @(xz m) k)
+      (* @(yw m) k) (* @(yx m) k) (* @(yy m) k) (* @(yz m) k)
+      (* @(zw m) k) (* @(zx m) k) (* @(zy m) k) (* @(zz m) k)))
+
   (doc col "gets a column—as a `(VectorN 4)`—from a matrix `m` by index. Valid
 values are `0` to `3`.
 
