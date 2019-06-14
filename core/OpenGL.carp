@@ -1,3 +1,9 @@
+(register-type GLuint)
+(register-type GLint)
+(register-type GLsizei)
+(register-type GLsizeiptr)
+(register-type GLboolean)
+
 (defmodule GL
 
   (register-type GLenum)
@@ -1422,7 +1428,7 @@
   (register deleteBuffers (λ [GLsizei (Ptr GLuint)] ()) "glDeleteBuffers")
   (register genBuffers (λ [GLsizei (Ptr GLuint)] ()) "glGenBuffers")
   (register isBuffer (λ [GLuint] GLboolean) "glIsBuffer")
-  (register bufferData (λ [GLenum GLsizeiptr (Ptr ()) GLenum] ()) "glBufferData")
+  (register bufferData (λ [GLenum GLsizeiptr (Ptr a) GLenum] ()) "glBufferData")
   (register bufferSubData (λ [GLenum GLintptr GLsizeiptr (Ptr ())] ()) "glBufferSubData")
   (register getBufferSubData (λ [GLenum GLintptr GLsizeiptr (Ptr ())] ()) "glGetBufferSubData")
   (register mapBuffer (λ [GLenum GLenum] (Ptr ())) "glMapBuffer")
@@ -1473,6 +1479,7 @@
   (register getVertexAttribfv (λ [GLuint GLenum (Ptr Float)] ()) "glGetVertexAttribfv")
   (register getVertexAttribiv (λ [GLuint GLenum (Ptr Int)] ()) "glGetVertexAttribiv")
   (register getVertexAttribPointerv (λ [GLuint GLenum (Ptr (Ptr ()))] ()) "glGetVertexAttribPointerv")
+  (register shaderSource (λ [GLuint GLsizei (Ptr (Ptr Char)) GLint] ()) "glShaderSource")
   (register deleteShader (λ [GLuint] ()) "glDeleteShader")
   (register detachShader (λ [GLuint GLuint] ()) "glDetachShader")
   (register createShader (λ [GLenum] GLuint) "glCreateShader")
@@ -1507,7 +1514,7 @@
   (register getShaderiv (λ [GLuint GLenum (Ptr Int)] ()) "glGetShaderiv")
   (register getProgramiv (λ [GLuint GLenum (Ptr Int)] ()) "glGetProgramiv")
   (register getAttachedShaders (λ [GLuint GLsizei (Ptr GLsizei) (Ptr GLuint)] ()) "glGetAttachedShaders")
-  (register getShaderInfoLog (λ [GLuint GLsizei (Ptr GLsizei) (Ptr GLchar)] ()) "glGetShaderInfoLog")
+  (register getShaderInfoLog (λ [GLuint GLsizei (Ptr GLsizei) (Ptr Char)] ()) "glGetShaderInfoLog")
   (register getProgramInfoLog (λ [GLuint GLsizei (Ptr GLsizei) (Ptr GLchar)] ()) "glGetProgramInfoLog")
   (register getUniformLocation (λ [GLuint (Ptr GLchar)] Int) "glGetUniformLocation")
   (register getActiveUniform (λ [GLuint GLuint GLsizei (Ptr GLsizei) (Ptr Int) (Ptr GLenum) (Ptr GLchar)] ()) "glGetActiveUniform")
@@ -1527,3 +1534,15 @@
   (register uniformMatrix3x4fv (λ [Int GLsizei GLboolean (Ptr Float)] ()) "glUniformMatrix3x4fv")
   (register uniformMatrix4x3fv (λ [Int GLsizei GLboolean (Ptr Float)] ()) "glUniformMatrix4x3fv")
   )
+
+(system-include "GLhelper.h")
+
+(defmodule GL
+  (register to-uint (λ [Int] GLuint))
+  (register to-sizei (λ [Int] GLsizei))
+  (register to-sizeiptr (λ [Int] GLsizeiptr))
+)
+
+(defmodule GLuint
+  (register copy (λ [(Ref GLuint)] GLuint))
+)
