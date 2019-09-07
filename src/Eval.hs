@@ -164,6 +164,13 @@ eval env xobj =
         (defnExpr@(XObj Defn _ _) : _) ->
             return (makeEvalError ctx Nothing ("I didn’t understand the `defn` at " ++ prettyInfoFromXObj xobj ++ ":\n\n" ++ pretty xobj ++ "\n\nIs it valid? Every `defn` needs to follow the form `(defn name [arg] body)`.") Nothing)
 
+        ((XObj (Sym (SymPath [] "hoist") _) _ _) : rest) -> do
+          expanded <- mapM (expandAll eval (getGlobalEnv env)) rest
+          evald <- mapM eval1 expanded
+          trace (show evald) (return dynamicNil)
+          where eval1 (Right r) = eval (getGlobalEnv env) r
+                eval1 l = return $ l
+
         [defExpr@(XObj Def _ _), name, expr] ->
           if isUnqualifiedSym name
           then specialCommandDefine xobj

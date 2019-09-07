@@ -494,6 +494,10 @@ pathToEnv rootEnv = visit rootEnv
 showImportIndented :: Int -> SymPath -> String
 showImportIndented indent path = replicate indent ' ' ++ " * " ++ show path
 
+getGlobalEnv :: Env -> Env
+getGlobalEnv env@(Env{envParent=Nothing}) = env
+getGlobalEnv Env{envParent=(Just p)} = getGlobalEnv p
+
 incrementEnvNestLevel :: Env -> Env
 incrementEnvNestLevel env = let current = envFunctionNestingLevel env
                             in env { envFunctionNestingLevel = current + 1 }
