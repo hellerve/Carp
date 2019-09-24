@@ -212,9 +212,17 @@ concretizeXObj allowAmbiguityRoot typeEnv rootEnv visitedDefinitions root =
     visitMatchCase allowAmbig level env (lhs, rhs) =
       do visitedLhs <- visit allowAmbig level env lhs -- TODO! This changes the names of some tags (which is corrected in Emit) but perhaps there is a better way where they can be identified as tags and not changed?
          visitedRhs <- visit allowAmbig level env rhs
-         return $ do okVisitedLhs <- visitedLhs
-                     okVisitedRhs <- visitedRhs
-                     return [okVisitedLhs, okVisitedRhs]
+         if isRefTy visitedRhs
+         then
+           let Right okrhs = visitedRhs
+               Just t = ty okrhs
+           in return (Left (MatchCantReturnRefTy okrhs t))
+         else return $ do okVisitedLhs <- visitedLhs
+                          okVisitedRhs <- visitedRhs
+                          return [okVisitedLhs, okVisitedRhs]
+      where isRefTy (Right (XObj _ _ (Just (RefTy _)))) = True
+            isRefTy _ = False
+
 
     visitSymbol :: Bool -> Env -> XObj -> State [XObj] (Either TypeError XObj)
     visitSymbol allowAmbig env xobj@(XObj (Sym path lookupMode) i t) =

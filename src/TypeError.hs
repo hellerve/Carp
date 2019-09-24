@@ -32,6 +32,7 @@ data TypeError = SymbolMissingType XObj Env
                | NotAValidType XObj
                | FunctionsCantReturnRefTy XObj Ty
                | LetCantReturnRefTy XObj Ty
+               | MatchCantReturnRefTy XObj Ty
                | GettingReferenceToUnownedValue XObj
                | UsingUnownedValue XObj
                | UsingCapturedValue XObj
@@ -164,6 +165,10 @@ instance Show TypeError where
     "\n\nYou’ll have to copy the return value using `@`."
   show (LetCantReturnRefTy xobj t) =
     "`let` expressions can’t return references. " ++ pretty xobj ++ " : " ++
+    show t ++ " at " ++ prettyInfoFromXObj xobj ++
+    "\n\nYou’ll have to copy the return value using `@`."
+  show (MatchCantReturnRefTy xobj t) =
+    "`match` expressions can’t return references. " ++ pretty xobj ++ " : " ++
     show t ++ " at " ++ prettyInfoFromXObj xobj ++
     "\n\nYou’ll have to copy the return value using `@`."
   show (GettingReferenceToUnownedValue xobj) =
@@ -303,7 +308,9 @@ machineReadableErrorStrings fppl err =
     (FunctionsCantReturnRefTy xobj t) ->
       [machineReadableInfoFromXObj fppl xobj ++ " Functions can't return references. " ++ getName xobj ++ " : " ++ show t ++ "."]
     (LetCantReturnRefTy xobj t) ->
-      [machineReadableInfoFromXObj fppl xobj ++ " Let-expressions can't return references. '" ++ pretty xobj ++ "' : " ++ show t ++ "."]
+      [machineReadableInfoFromXObj fppl xobj ++ " let expressions can't return references. '" ++ pretty xobj ++ "' : " ++ show t ++ "."]
+    (MatchCantReturnRefTy xobj t) ->
+      [machineReadableInfoFromXObj fppl xobj ++ " match expressions can't return references. '" ++ pretty xobj ++ "' : " ++ show t ++ "."]
     (GettingReferenceToUnownedValue xobj) ->
       [machineReadableInfoFromXObj fppl xobj ++ " Referencing a given-away value '" ++ pretty xobj ++ "'."]
     (UsingUnownedValue xobj) ->
