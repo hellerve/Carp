@@ -54,6 +54,9 @@
   (let [x (gensym-with 'a)]
     (list 'let (array x 1) (list '= x 1))))
 
+(inline-c "bool test_inline_c() { return true; }")
+(register test-inline-c (Fn [] Bool) "test_inline_c")
+
 (deftest test
   (assert-true test
                (test-let-do)
@@ -217,4 +220,7 @@
   (assert-true test
                (test-gensym)
                "gensym works as expected")
+  (assert-true test
+               (test-inline-c)
+               "inline-c works as expected")
 )

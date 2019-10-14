@@ -342,3 +342,22 @@ The expression must be evaluable at compile time.")
 (doc gensym "generates symbols dynamically as needed.")
 (defndynamic gensym []
   (gensym-with 'gensym-generated))
+
+(doc *c-counter* "is a helper counter for `inline-c`.")
+(defdynamic *c-counter* 0)
+
+(doc inline-c "allows you to write inline C code.
+
+Example:
+```
+(inline-c \"int x() { return 1; }\")
+(register x (Fn [] Int))
+
+(defn main [] (println* &(x))) ; => 1
+```")
+(defndynamic inline-c [s]
+  (let [f (String.join [(Project.get-config "output-directory")
+                        "carp_inline_c_generated" (str *c-counter*) ".h"])]
+    (do
+      (write-file f s)
+      (system-include f))))
