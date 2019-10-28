@@ -58,7 +58,7 @@
   (doc color "generates ANSI coloration based on a color name `cname`.")
   (defn color [cid]
     (let [n (Map.get &table &cid)]
-      (String.append "\x1b[" &(String.append &n "m"))))
+      (String.append "\x1b[" &(String.append n "m"))))
 
   (doc colorize "wraps a string `s` in ANSI coloration based on a color id `cid` and prints it.
 

@@ -1,4 +1,5 @@
 (use Map)
+(Debug.sanitize-addresses)
 
 (load "Test.carp")
 (use Test)
@@ -6,29 +7,29 @@
 (deftest test
   (assert-equal test
                 "2"
-                &(Map.get &(Map.put (Map.create) "1" "2") "1")
+                (Map.get &(Map.put (Map.create) "1" "2") "1")
                 "basic put and get works"
   )
   (assert-equal test
                 "3"
-                &(Map.get &(Map.put (Map.put (Map.create) "1" "2") "1" "3") "1")
+                (Map.get &(Map.put (Map.put (Map.create) "1" "2") "1" "3") "1")
                 "put, update and get"
   )
   (assert-equal test
                 "2"
-                &(Map.get &(Map.put (Map.create) &-7 "2") &-7)
+                (Map.get &(Map.put (Map.create) &-7 "2") &-7)
                 "basic put and get works with negative keys"
   )
   (assert-equal test
                 "2"
-                &(let-do [em (Map.create)]
+                (let-do [em (Map.create)]
                   (Map.put! &em "1" "2")
                   (Map.get &em "1"))
                 "put! works"
   )
   (assert-equal test
                 ""
-                &(Map.get &(Map.create) "1")
+                (Map.get &(Map.create) "1")
                 "get works with defaults"
   )
   (assert-equal test
@@ -43,32 +44,32 @@
   )
   (assert-equal test
                 true
-                (Map.empty? &(Map.update (Map.create) "x" &Int.inc))
+                (Map.empty? &(Map.update (Map.create) "x" &String.reverse))
                 "update works with empty map"
   )
   (assert-equal test
-                2
-                (Map.get &(Map.update {@"x" 1} "x" &Int.inc) "x")
+                &2
+                (Map.get &(Map.update {@"x" 1} "x" &(fn [x] (add-ref x &1))) "x")
                 "update works"
   )
   (assert-equal test
                 \x ;; using char because it has no (zero) operation
-                (Map.get-with-default &{1 \x} &1 &\_)
+                @(Map.get-with-default &{1 \x} &1 &\_)
                 "get-with-default works I"
   )
   (assert-equal test
                 \_
-                (Map.get-with-default &{1 \x} &2 &\_)
+                @(Map.get-with-default &{1 \x} &2 &\_)
                 "get-with-default works II"
   )
   (assert-equal test
-                8
-                (Map.get &(Map.update-with-default (Map.create) "x" &Int.inc 7) "x")
+                &8
+                (Map.get &(Map.update-with-default (Map.create) "x" &(fn [x] (add-ref x &1)) &7) "x")
                 "update-with-default works with empty map"
   )
   (assert-equal test
-                2
-                (Map.get &(Map.update-with-default {@"x" 1} "x" &Int.inc 7) "x")
+                &2
+                (Map.get &(Map.update-with-default {@"x" 1} "x" &(fn [x] (add-ref x &1)) &7) "x")
                 "update-with-default works"
   )
   (assert-equal test
@@ -200,7 +201,7 @@
                 "vals works"
   )
   (assert-equal test
-                3
+                &3
                 (Map.get &{(Pair.init 1 2) 3} &(Pair.init 1 2))
                 "Pairs work as keys"
   )

@@ -63,7 +63,7 @@
       ret))
 
   (defn get-idx [b i]
-    @(Pair.b (Array.nth (entries b) i)))
+    (Pair.b (Array.nth (entries b) i)))
 
   (defn set-idx [b i val]
     (do (Array.aupdate! (entries &b) i &(fn [p] (Pair.set-b @p @val)))
@@ -77,7 +77,7 @@
     (let [i (find b k)]
       (if (<= 0 i)
         (get-idx b i)
-        @default-value)))
+        default-value)))
 
   (defn get-maybe [b k]
     (let [i (find b k)]
@@ -174,7 +174,7 @@
           (if (<= 0 i)
             (let [new-b (Bucket.set-idx @n i &(~f (Bucket.get-idx n i)))]
               (Array.aset b idx new-b))
-            (let [new-b (Bucket.push-back @n k &(~f @&v))]
+            (let [new-b (Bucket.push-back @n k &(~f v))]
               (Array.aset b idx new-b))))))))
 
   (doc length "Get the length of the map m.")
@@ -217,7 +217,7 @@
   (defn = [m1 m2]
     (and (= (length m1) (length m2))
          ;; we could use contains? and get-with-default here to avoid requiring a (zero) for the value type
-         (all? &(fn [k v] (= v &(get m2 k))) m1)))
+         (all? &(fn [k v] (= v (get m2 k))) m1)))
 
   (doc for-each "Execute the binary function f for all keys and values in the map m.")
   (defn for-each [m f]
