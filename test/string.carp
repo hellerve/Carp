@@ -228,7 +228,7 @@
                 "join-with-char works correctly III")
   (assert-equal test
                 "hellohellohello"
-                &(repeat 3 "hello")
+                (repeat 3 "hello")
                 "repeat works correctly")
   (assert-equal test
                 "bcde"
