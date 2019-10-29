@@ -585,17 +585,23 @@ getConcretizedPath single functionType =
 
 -- | Used for finding functions like 'delete' or 'copy' for members of a Deftype (or Array).
 findFunctionForMember :: TypeEnv -> Env -> String -> Ty -> (String, Ty) -> FunctionFinderResult
-findFunctionForMember typeEnv env functionName functionType (memberName, memberType)
-  | isManaged typeEnv memberType =
-    case allFunctionsWithNameAndSignature env functionName functionType of
-      [] -> FunctionNotFound ("Can't find any '" ++ functionName ++ "' function for member '" ++
-                              memberName ++ "' of type " ++ show functionType)
-      [(_, Binder _ single)] ->
-        let concretizedPath = getConcretizedPath single functionType
-        in  FunctionFound (pathToC concretizedPath)
-      _ -> FunctionNotFound ("Can't find a single '" ++ functionName ++ "' function for member '" ++
-                             memberName ++ "' of type " ++ show functionType)
-  | otherwise = FunctionIgnored
+findFunctionForMember typeEnv env functionName functionType (memberName, memberType) =
+  case allFunctionsWithNameAndSignature env functionName functionType of
+    [] ->
+      if isManaged typeEnv memberType
+      then FunctionNotFound ("Can't find any '" ++ functionName ++
+                             "' function for member '" ++ memberName ++
+                             "' of type " ++ show functionType)
+      else FunctionIgnored
+    [(_, Binder _ single)] ->
+      let concretizedPath = getConcretizedPath single functionType
+      in  FunctionFound (pathToC concretizedPath)
+    _ ->
+      if isManaged typeEnv memberType
+      then FunctionNotFound ("Can't find a single '" ++ functionName ++
+                             "' function for member '" ++ memberName ++
+                             "' of type " ++ show functionType)
+      else FunctionIgnored
 
 -- | TODO: should this be the default and 'findFunctionForMember' be the specific one
 findFunctionForMemberIncludePrimitives :: TypeEnv -> Env -> String -> Ty -> (String, Ty) -> FunctionFinderResult
