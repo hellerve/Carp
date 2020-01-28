@@ -26,6 +26,11 @@
     (do
       (set! s (mod (+ (* s a) c) m))
       (/ s m)))
+
+  ; this ensures that we seed the random number generator on startup
+  (hidden _)
+  (private _)
+  (def _ (do (Random.seed) 0))
 )
 
 (defmodule Int
