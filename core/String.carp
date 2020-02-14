@@ -66,14 +66,6 @@
   (defn slice [s a b]
     (from-chars &(Array.slice &(chars s) a b)))
 
-  (doc prefix "Return the first `a` characters of the string `s`.")
-  (defn prefix [s a]
-    (from-chars &(Array.slice &(chars s) 0 a)))
-
-  (doc suffix "Return the last `b` characters of the string `s`.")
-  (defn suffix [s b]
-    (from-chars &(Array.slice &(chars s) b (length s))))
-
   (doc starts-with? "Check if the string `s` begins with the string `sub`.")
   (defn starts-with? [s sub]
     (let [ls (length sub)]

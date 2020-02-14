@@ -59,4 +59,12 @@
 (definterface tan (λ [a] a))
 (definterface tanh (λ [a] a))
 
+(definterface length (Fn [a] Int))
 (definterface slice (Fn [&a Int Int] a))
+
+(defn prefix [xs end-index]
+  (slice xs 0 end-index))
+
+(defn suffix [xs start-index]
+  (slice xs start-index (length xs)))
+

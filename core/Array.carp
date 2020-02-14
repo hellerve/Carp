@@ -145,14 +145,6 @@ If the array is empty, returns `Nothing`")
         (set! result (push-back result @(unsafe-nth xs i))))
       result))
 
-  (doc prefix "gets a prefix array to `end-index`.")
-  (defn prefix [xs end-index]
-    (slice xs 0 end-index))
-
-  (doc suffix "gets a suffix array from `start-index`.")
-  (defn suffix [xs start-index]
-    (slice xs start-index (length xs)))
-
   (doc reverse "reverses an array.")
   (defn reverse [a]
     (let-do [i 0
