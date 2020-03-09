@@ -231,6 +231,8 @@ eval env xobj@(XObj o i t) = do
               Right okArgs -> getCommand callback okArgs
               Left err -> return (Left err)
 
+       XObj (Lst (XObj (Defn _) _ _:_)) _ _:_ -> return (Right xobj)
+
        l@(XObj (Lst _) i t):args -> do
          put (pushFrame ctx xobj)
          f <- eval env l
@@ -274,6 +276,7 @@ eval env xobj@(XObj o i t) = do
               Right [] ->
                 return (makeEvalError ctx Nothing "No forms in 'do' statement." (info xobj))
               Right ok -> return (Right (last ok))
+       [] -> return dynamicNil
        x ->
          return (evalError ctx ("I did not understand the form `" ++ show x ++ "`.") (info xobj))
     force x = seq x x
@@ -492,7 +495,7 @@ annotateWithinContext qualifyDefn xobj =
                 case contextExecMode ctx of
                   Check ->
                     let fppl = projectFilePathPrintLength (contextProj ctx)
-                    in  return (evalError ctx (joinWith "\n" (machineReadableErrorStrings fppl err)) (info xobj))
+                    in  return (evalError ctx (joinWith "\n" (machineReadableErrorStrings fppl err)) Nothing)
                   _ ->
                     return (evalError ctx (show err) (info xobj))
               Right ok ->
@@ -825,9 +828,9 @@ primitiveDefdynamic _ _ [notName, body] = do
 primitives :: Map.Map SymPath Primitive
 primitives = Map.fromList
   [ makePrim "quote" 1 "(quote x) ; where x is an actual symbol" (\_ _ [x] -> return (Right x))
-  , makePrim "file" 1 "(file mysymbol)" primitiveFile
-  , makePrim "line" 1 "(line mysymbol)" primitiveLine
-  , makePrim "column" 1 "(column mysymbol)" primitiveColumn
+  , makeVarPrim "file" "(file mysymbol)" primitiveFile
+  , makeVarPrim "line" "(line mysymbol)" primitiveLine
+  , makeVarPrim "column" "(column mysymbol)" primitiveColumn
   , makePrim "info" 1 "(info mysymbol)" primitiveInfo
   , makeVarPrim "register-type" "(register-type Name <optional: members>)" primitiveRegisterType
   , makePrim "defmacro" 3 "(defmacro name [args :rest restargs] body)" primitiveDefmacro
