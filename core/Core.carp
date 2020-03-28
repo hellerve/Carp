@@ -21,8 +21,8 @@
 
 (load "Interfaces.carp")
 (load "Bool.carp")
-(load "Generics.carp")
 (load "Macros.carp")
+(load "Generics.carp")
 (load "Maybe.carp")
 (load "Result.carp")
 (load "Dynamic.carp")
