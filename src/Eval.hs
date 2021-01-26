@@ -98,9 +98,12 @@ eval ctx xobj@(XObj o info ty) preference resolver =
               >>= \(Binder _ found) -> pure (ctx, Right (resolveDef found))
           )
             <|> tryLookup path -- fallback
-        tryLookup path =
+        tryLookup path@(SymPath mods _) =
           ( lookupBinder path (contextGlobalEnv ctx)
-              >>= \(Binder meta found) -> checkPrivate meta found
+              >>= \(Binder meta found) ->
+                if mods /= (contextPath ctx)
+                then checkPrivate meta found
+                else pure (ctx, Right (resolveDef found))
           )
             <|> ( lookupBinder path (getTypeEnv (contextTypeEnv ctx))
                     >>= \(Binder _ found) -> pure (ctx, Right (resolveDef found))
@@ -111,7 +114,10 @@ eval ctx xobj@(XObj o info ty) preference resolver =
                     ( map
                         ( \(SymPath p' n') ->
                             lookupBinder (SymPath (p' ++ (n' : p)) n) (contextGlobalEnv ctx)
-                              >>= \(Binder meta found) -> checkPrivate meta found
+                              >>= \(Binder meta found) ->
+                                      if (p' ++ (n' : p)) /= (contextPath ctx)
+                                      then checkPrivate meta found
+                                      else pure (ctx, Right (resolveDef found))
                         )
                         (Set.toList (envUseModules (contextGlobalEnv ctx)))
                     )
@@ -494,10 +500,10 @@ macroExpand ctx xobj =
       (_, f) <- evalDynamic ResolveLocal ctx x
       case f of
         Right m@(XObj (Lst (XObj Macro _ _ : _)) _ _) -> do
-          (newCtx', res) <- evalDynamic ResolveLocal ctx (XObj (Lst (m : args)) i t)
+          (newCtx', res) <- evalDynamic ResolveLocal next (XObj (Lst (m : args)) i t)
           pure (newCtx', res)
         _ -> do
-          (newCtx, expanded) <- foldlM successiveExpand (ctx, Right []) args
+          (newCtx, expanded) <- foldlM successiveExpand (next, Right []) args
           pure
             ( newCtx,
               do
@@ -778,7 +784,7 @@ annotateWithinContext ctx xobj = do
                     Right ok -> pure (ctx, Right ok)
 
 primitiveDefmodule :: VariadicPrimitiveCallback
-primitiveDefmodule xobj ctx@(Context env i _ pathStrings _ _ _ _) (XObj (Sym (SymPath [] moduleName) _) _ _ : innerExpressions) =
+primitiveDefmodule xobj ctx@(Context env _ _ pathStrings _ _ _ _) (XObj (Sym (SymPath [] moduleName) _) _ _ : innerExpressions) =
   -- N.B. The `envParent` rewrite at the end of this line is important!
   -- lookups delve into parent envs by default, which is normally what we want, but in this case it leads to problems
   -- when submodules happen to share a name with an existing module or type at the global level.
@@ -787,16 +793,11 @@ primitiveDefmodule xobj ctx@(Context env i _ pathStrings _ _ _ _) (XObj (Sym (Sy
     >>= \(newCtx, result) ->
       case result of
         Left err -> pure (newCtx, Left err)
-        Right _ -> pure (popModulePath (newCtx {contextInternalEnv = envParent =<< contextInternalEnv newCtx}), dynamicNil)
+        Right _ -> pure (popModulePath newCtx, dynamicNil)
   where
     updateExistingModule :: Binder -> IO (Context, Either EvalError XObj)
-    updateExistingModule (Binder _ (XObj (Mod innerEnv) _ _)) =
-      let ctx' =
-            ctx
-              { contextInternalEnv = Just innerEnv {envParent = i},
-                contextPath = contextPath ctx ++ [moduleName]
-              }
-       in pure (ctx', dynamicNil)
+    updateExistingModule (Binder _ (XObj (Mod _) _ _)) =
+       pure (pushModulePath ctx moduleName, dynamicNil)
     updateExistingModule (Binder meta (XObj (Lst [XObj MetaStub _ _, _]) _ _)) =
       defineNewModule meta
     updateExistingModule _ =
@@ -805,12 +806,7 @@ primitiveDefmodule xobj ctx@(Context env i _ pathStrings _ _ _ _) (XObj (Sym (Sy
     defineNewModule meta =
       pure (ctx', dynamicNil)
       where
-        moduleEnv = Env (Map.fromList []) (Just (getEnv env pathStrings)) (Just moduleName) Set.empty ExternalEnv 0
-        newModule = XObj (Mod moduleEnv) (xobjInfo xobj) (Just ModuleTy)
-        updatedGlobalEnv = envInsertAt env (SymPath pathStrings moduleName) (Binder meta newModule)
-        -- The parent of the internal env needs to be set to i here for contextual `use` calls to work.
-        -- In theory this shouldn't be necessary; but for now it is.
-        ctx' = ctx {contextGlobalEnv = updatedGlobalEnv, contextInternalEnv = Just moduleEnv {envParent = i}, contextPath = contextPath ctx ++ [moduleName]}
+        ctx' = pushModule ctx moduleName meta (xobjInfo xobj) ExternalEnv
     defineModuleBindings :: (Context, Either EvalError XObj) -> IO (Context, Either EvalError XObj)
     defineModuleBindings (context, Left e) = pure (context, Left e)
     defineModuleBindings (context, _) =

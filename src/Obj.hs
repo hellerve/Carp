@@ -980,9 +980,6 @@ instance Hashable Context where
       `hashWithSalt` contextInternalEnv
       `hashWithSalt` contextTypeEnv
 
-popModulePath :: Context -> Context
-popModulePath ctx = ctx {contextPath = init (contextPath ctx)}
-
 pushFrame :: Context -> XObj -> Context
 pushFrame ctx x = ctx {contextHistory = x : contextHistory ctx}
 
