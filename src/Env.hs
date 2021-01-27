@@ -25,7 +25,7 @@ pushModule ctx@Context{contextGlobalEnv=env, contextPath=path} moduleName meta i
 
 newEnv :: Env -> String -> EnvMode -> Env
 newEnv parent name mode =
-  Env (Map.fromList []) (Just parent) (Just name) Set.empty mode 0
+  Env mempty (Just parent) (Just name) mempty mode mempty
 
 -- | Add an XObj to a specific environment. TODO: rename to envInsert
 extendEnv :: Env -> String -> XObj -> Env
