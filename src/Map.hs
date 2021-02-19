@@ -6,7 +6,7 @@ module Map where
 import Data.Hashable
 import qualified Data.Map as M
 
-newtype Map k v = Map {unMap :: M.Map k v} deriving (Show, Eq, Foldable, Functor, Traversable)
+newtype Map k v = Map {unMap :: M.Map k v} deriving (Show, Eq, Foldable, Functor, Traversable, Semigroup, Monoid)
 
 instance (Hashable k, Hashable v) => Hashable (Map k v) where
   hashWithSalt s = hashWithSalt s . Map.toList

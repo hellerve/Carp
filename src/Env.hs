@@ -5,7 +5,6 @@ import Data.Maybe (fromMaybe)
 import Info
 import qualified Map
 import Obj
-import qualified Set
 import Types
 
 popModulePath :: Context -> Context
@@ -16,16 +15,16 @@ pushModulePath ctx moduleName =
   ctx {contextPath = (contextPath ctx) ++ [moduleName]}
 
 pushModule :: Context -> String -> MetaData -> Maybe Info -> EnvMode -> Context
-pushModule ctx@Context{contextGlobalEnv=env, contextPath=path} moduleName meta i mode =
+pushModule ctx@Context {contextGlobalEnv = env, contextPath = path} moduleName meta i mode =
   let ctxWithPath = pushModulePath ctx moduleName
       moduleEnv = newEnv (getEnv env path) moduleName mode
       newModule = XObj (Mod moduleEnv) i (Just ModuleTy)
       updatedGlobalEnv = envInsertAt env (SymPath path moduleName) (Binder meta newModule)
-  in ctxWithPath {contextGlobalEnv = updatedGlobalEnv}
+   in ctxWithPath {contextGlobalEnv = updatedGlobalEnv}
 
 newEnv :: Env -> String -> EnvMode -> Env
 newEnv parent name mode =
-  Env mempty (Just parent) (Just name) mempty mode mempty
+  Env mempty (Just parent) (Just name) mempty mode 0
 
 -- | Add an XObj to a specific environment. TODO: rename to envInsert
 extendEnv :: Env -> String -> XObj -> Env

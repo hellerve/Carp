@@ -102,8 +102,8 @@ eval ctx xobj@(XObj o info ty) preference resolver =
           ( lookupBinder path (contextGlobalEnv ctx)
               >>= \(Binder meta found) ->
                 if mods /= (contextPath ctx)
-                then checkPrivate meta found
-                else pure (ctx, Right (resolveDef found))
+                  then checkPrivate meta found
+                  else pure (ctx, Right (resolveDef found))
           )
             <|> ( lookupBinder path (getTypeEnv (contextTypeEnv ctx))
                     >>= \(Binder _ found) -> pure (ctx, Right (resolveDef found))
@@ -115,9 +115,9 @@ eval ctx xobj@(XObj o info ty) preference resolver =
                         ( \(SymPath p' n') ->
                             lookupBinder (SymPath (p' ++ (n' : p)) n) (contextGlobalEnv ctx)
                               >>= \(Binder meta found) ->
-                                      if (p' ++ (n' : p)) /= (contextPath ctx)
-                                      then checkPrivate meta found
-                                      else pure (ctx, Right (resolveDef found))
+                                if (p' ++ (n' : p)) /= (contextPath ctx)
+                                  then checkPrivate meta found
+                                  else pure (ctx, Right (resolveDef found))
                         )
                         (Set.toList (envUseModules (contextGlobalEnv ctx)))
                     )
@@ -497,7 +497,7 @@ macroExpand ctx xobj =
       pure (ctx, Right xobj)
     XObj (Lst [XObj (Lst (XObj Macro _ _ : _)) _ _]) _ _ -> evalDynamic ResolveLocal ctx xobj
     XObj (Lst (x@(XObj (Sym _ _) _ _) : args)) i t -> do
-      (_, f) <- evalDynamic ResolveLocal ctx x
+      (next, f) <- evalDynamic ResolveLocal ctx x
       case f of
         Right m@(XObj (Lst (XObj Macro _ _ : _)) _ _) -> do
           (newCtx', res) <- evalDynamic ResolveLocal next (XObj (Lst (m : args)) i t)
@@ -797,7 +797,7 @@ primitiveDefmodule xobj ctx@(Context env _ _ pathStrings _ _ _ _) (XObj (Sym (Sy
   where
     updateExistingModule :: Binder -> IO (Context, Either EvalError XObj)
     updateExistingModule (Binder _ (XObj (Mod _) _ _)) =
-       pure (pushModulePath ctx moduleName, dynamicNil)
+      pure (pushModulePath ctx moduleName, dynamicNil)
     updateExistingModule (Binder meta (XObj (Lst [XObj MetaStub _ _, _]) _ _)) =
       defineNewModule meta
     updateExistingModule _ =
