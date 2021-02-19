@@ -795,18 +795,14 @@ primitiveDefmodule xobj ctx@(Context env _ _ pathStrings _ _ _ _) (XObj (Sym (Sy
         Left err -> pure (newCtx, Left err)
         Right _ -> pure (popModulePath newCtx, dynamicNil)
   where
-    updateExistingModule :: Binder -> IO (Context, Either EvalError XObj)
-    updateExistingModule (Binder _ (XObj (Mod _) _ _)) =
-      pure (pushModulePath ctx moduleName, dynamicNil)
+    updateExistingModule b@(Binder _ (XObj (Mod _) _ _)) =
+      pure (pushExistingModule ctx moduleName b, dynamicNil)
     updateExistingModule (Binder meta (XObj (Lst [XObj MetaStub _ _, _]) _ _)) =
       defineNewModule meta
     updateExistingModule _ =
       pure (evalError ctx ("Can't redefine '" ++ moduleName ++ "' as module") (xobjInfo xobj))
-    defineNewModule :: MetaData -> IO (Context, Either EvalError XObj)
     defineNewModule meta =
-      pure (ctx', dynamicNil)
-      where
-        ctx' = pushModule ctx moduleName meta (xobjInfo xobj) ExternalEnv
+      pure (pushModule ctx moduleName meta (xobjInfo xobj) ExternalEnv, dynamicNil)
     defineModuleBindings :: (Context, Either EvalError XObj) -> IO (Context, Either EvalError XObj)
     defineModuleBindings (context, Left e) = pure (context, Left e)
     defineModuleBindings (context, _) =

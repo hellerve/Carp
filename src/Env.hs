@@ -22,6 +22,14 @@ pushModule ctx@Context {contextGlobalEnv = env, contextPath = path} moduleName m
       updatedGlobalEnv = envInsertAt env (SymPath path moduleName) (Binder meta newModule)
    in ctxWithPath {contextGlobalEnv = updatedGlobalEnv}
 
+pushExistingModule :: Context -> String -> Binder -> Context
+pushExistingModule ctx@Context {contextGlobalEnv = env, contextPath = path} name (Binder meta (XObj (Mod e) i t)) =
+  let ctxWithPath = pushModulePath ctx name
+      updatedGlobalEnv = envInsertAt env (SymPath path name) (Binder meta (XObj (Mod e {envParent = Just (getEnv env path)}) i t))
+   in ctxWithPath {contextGlobalEnv = updatedGlobalEnv}
+pushExistingModule _ _ m =
+  error ("expected module, but got " ++ show m)
+
 newEnv :: Env -> String -> EnvMode -> Env
 newEnv parent name mode =
   Env mempty (Just parent) (Just name) mempty mode 0
