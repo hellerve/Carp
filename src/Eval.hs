@@ -287,9 +287,8 @@ eval ctx xobj@(XObj o info ty) preference resolver =
                 Right newCtx -> do
                   (finalCtx, evaledBody) <- eval newCtx body preference ResolveLocal
                   let Just e = contextInternalEnv finalCtx
-                      Just parentEnv = envParent e
                   pure
-                    ( replaceInternalEnv finalCtx parentEnv,
+                    ( replaceInternalEnvMaybe finalCtx (envParent e),
                       do
                         okBody <- evaledBody
                         Right okBody

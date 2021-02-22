@@ -1,5 +1,6 @@
 module Context
   ( replaceGlobalEnv,
+    replaceInternalEnvMaybe,
     replaceInternalEnv,
     replaceTypeEnv,
     replaceHistory,
@@ -55,12 +56,18 @@ instance Contextual QualifiedPath where
 --------------------------------------------------------------------------------
 -- Environment Replacement Functions
 
+-- | Replace a context's internal environment with a new environment or nothing.
+--
+-- The previous environment is completely replaced and will not be recoverable.
+replaceInternalEnvMaybe :: Context -> Maybe Env -> Context
+replaceInternalEnvMaybe ctx env =
+  ctx {contextInternalEnv = env}
+
 -- | Replace a context's internal environment with a new environment.
 --
 -- The previous environment is completely replaced and will not be recoverable.
 replaceInternalEnv :: Context -> Env -> Context
-replaceInternalEnv ctx env =
-  ctx {contextInternalEnv = Just env}
+replaceInternalEnv ctx env = replaceInternalEnvMaybe ctx (Just env)
 
 -- | Replace a context's global environment with a new environment.
 --
