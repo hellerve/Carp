@@ -82,6 +82,9 @@ initialTypes typeEnv rootEnv root = evalState (visit rootEnv root) 0
         pure (Right (xobj {xobjTy = Just (RefTy PatternTy lt)}))
       (Chr _) -> pure (Right (xobj {xobjTy = Just CharTy}))
       Break -> pure (Right (xobj {xobjTy = Just (FuncTy [] UnitTy StaticLifetimeTy)}))
+      MetaStub -> do
+        freshTy <- genVarTy
+        pure (Right xobj {xobjTy = Just freshTy})
       (Command _) -> pure (Right (xobj {xobjTy = Just DynamicTy}))
       (Lst _) -> visitList env xobj
       (Arr _) -> visitArray env xobj

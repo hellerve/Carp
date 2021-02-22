@@ -69,6 +69,7 @@ eval :: Context -> XObj -> LookupPreference -> Resolver -> IO (Context, Either E
 eval ctx xobj@(XObj o info ty) preference resolver =
   case o of
     Lst body -> eval' body
+    MetaStub -> pure (ctx, Right xobj) -- meta stubs evaluate to themselves
     Sym spath@(SymPath p n) _ ->
       pure $
         case resolver of
@@ -429,6 +430,7 @@ eval ctx xobj@(XObj o info ty) preference resolver =
                 Right _ -> eval ctx' x preference resolver
         [XObj While _ _, cond, body] ->
           specialCommandWhile ctx cond body
+        [XObj MetaStub _ _] -> pure (ctx, Right xobj)
         [] -> pure (ctx, dynamicNil)
         _ -> pure (evalError ctx ("I did not understand the form `" ++ pretty xobj ++ "`") (xobjInfo xobj))
     badArity name params args i = case checkArity name params args of
