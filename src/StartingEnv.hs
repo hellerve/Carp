@@ -212,6 +212,41 @@ generateTemplateFuncStrOrPrn name docs funcTy =
     )
     (const [])
 
+-- | The Function module contains functions for dealing with functions.
+envModule :: Env
+envModule =
+  Env
+    { envBindings = bindings,
+      envParent = Nothing,
+      envModuleName = Just "Env",
+      envUseModules = Set.empty,
+      envMode = ExternalEnv,
+      envFunctionNestingLevel = 0
+    }
+  where
+    path = ["Dynamic", "Env"]
+    spath = SymPath path
+    bindings =
+      Map.fromList $ nullaries ++ unaries ++ binaries ++ ternaries
+    nullaries =
+      let f = addNullaryCommand . spath
+       in [ f "empty" commandEmptyEnv "creates an empty environment." "(Env.empty) ; => <env>",
+            f "current" commandCurrentEnv "gets the current environment." "(Env.current) ; => <env>"
+          ]
+    unaries =
+      let f = addUnaryCommand . spath
+       in [ f "parent" commandEnvParent "gets the parent of an environment. Returns the empty list if it has no parent." "(Env.parent (Env.empty)) ; => ()"
+          ]
+    binaries =
+      let f = addBinaryCommand . spath
+       in [ f "has" commandEnvHas "checks whether a value is in an environment." "(Env.has (Env.empty) 'x) ; => false",
+            f "get" commandEnvGet "gets a value from an environment." "(Env.get (Env.current) '+) ; => (command +)"
+          ]
+    ternaries =
+      let f = addTernaryCommand . spath
+       in [ f "put" commandEnvPut "puts a value into an environment." "(Env.put (Env.current) 'x 1) ; => <env>"
+          ]
+
 -- | The dynamic module contains dynamic functions only available in the repl and during compilation.
 dynamicModule :: Env
 dynamicModule =
@@ -331,7 +366,8 @@ dynamicModule =
       [ ("String", Binder emptyMeta (XObj (Mod dynamicStringModule) Nothing Nothing)),
         ("Symbol", Binder emptyMeta (XObj (Mod dynamicSymModule) Nothing Nothing)),
         ("Project", Binder emptyMeta (XObj (Mod dynamicProjectModule) Nothing Nothing)),
-        ("Path", Binder emptyMeta (XObj (Mod dynamicPathModule) Nothing Nothing))
+        ("Path", Binder emptyMeta (XObj (Mod dynamicPathModule) Nothing Nothing)),
+        ("Env", Binder emptyMeta (XObj (Mod envModule) Nothing Nothing))
       ]
 
 -- | A submodule of the Dynamic module. Contains functions for working with strings in the repl or during compilation.

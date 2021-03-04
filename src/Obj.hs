@@ -150,6 +150,7 @@ data Obj
   | If
   | Match MatchMode
   | Mod Env
+  | Environ Env
   | Deftype Ty
   | DefSumtype Ty
   | With
@@ -466,6 +467,7 @@ pretty = visit 0
         Break -> "break"
         Interface _ _ -> "interface"
         With -> "with"
+        Environ _ -> "env"
 
 prettyUpTo :: Int -> XObj -> String
 prettyUpTo lim xobj =
@@ -531,6 +533,7 @@ prettyUpTo lim xobj =
         Break -> ""
         Interface _ _ -> ""
         With -> ""
+        Environ _ -> ""
 
 prettyCaptures :: Set.Set XObj -> String
 prettyCaptures captures =

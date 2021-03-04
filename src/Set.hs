@@ -5,7 +5,7 @@ module Set where
 import Data.Hashable
 import qualified Data.Set as S
 
-newtype Set v = Set {unSet :: S.Set v} deriving (Show, Eq, Foldable, Ord)
+newtype Set v = Set {unSet :: S.Set v} deriving (Show, Eq, Foldable, Ord, Monoid)
 
 instance Hashable v => Hashable (Set v) where
   hashWithSalt s = hashWithSalt s . Set.toList

@@ -9,8 +9,9 @@ import Data.Functor ((<&>))
 import Data.Hashable (hash)
 import Data.List (elemIndex, foldl')
 import Data.List.Split (splitOn)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import Emit
+import Env
 import Info
 import Lookup
 import qualified Map
@@ -856,3 +857,45 @@ commandType ctx (XObj x _ _) =
     typeOf Ref = "ref"
     typeOf Deref = "deref"
     typeOf (Interface _ _) = "interface"
+    typeOf (Environ _) = "env"
+
+commandEmptyEnv :: NullaryCommandCallback
+commandEmptyEnv c = pure (c, Right (XObj (Environ emptyEnv) Nothing Nothing))
+
+commandCurrentEnv :: NullaryCommandCallback
+commandCurrentEnv c@Context {contextGlobalEnv = e, contextPath = p} =
+  pure (c, Right (XObj (Environ (getEnv e p)) Nothing Nothing))
+
+commandEnvParent :: UnaryCommandCallback
+commandEnvParent c (XObj (Environ env) _ _) =
+  let parent = maybe (Lst []) Environ (envParent env)
+   in pure (c, Right (XObj parent Nothing Nothing))
+commandEnvParent c x =
+  pure $ evalError c ("I expected the first argument to `Env.parent` to be an environment, but got `" ++ pretty x ++ "`") (xobjInfo x)
+
+commandEnvHas :: BinaryCommandCallback
+commandEnvHas c (XObj (Environ env) _ _) (XObj (Sym s _) _ _) =
+  pure (c, Right (XObj (Bol (isJust (lookupBinder s env))) Nothing Nothing))
+commandEnvHas c (XObj (Environ _) _ _) x =
+  pure $ evalError c ("I expected the second argument to `Env.has` to be a symbol, but got `" ++ pretty x ++ "`") (xobjInfo x)
+commandEnvHas c x _ =
+  pure $ evalError c ("I expected the first argument to `Env.has` to be an environment, but got `" ++ pretty x ++ "`") (xobjInfo x)
+
+commandEnvGet :: BinaryCommandCallback
+commandEnvGet c (XObj (Environ env) _ _) sym@(XObj (Sym s _) _ _) =
+  case lookupBinder s env of
+    Just Binder {binderXObj = v} -> pure (c, Right v)
+    Nothing -> pure $ evalError c ("The symbol `" ++ pretty sym ++ "` wasn’t found in the environment.") (xobjInfo sym)
+commandEnvGet c (XObj (Environ _) _ _) x =
+  pure $ evalError c ("I expected the second argument to `Env.has` to be a symbol, but got `" ++ pretty x ++ "`") (xobjInfo x)
+commandEnvGet c x _ =
+  pure $ evalError c ("I expected the first argument to `Env.has` to be an environment, but got `" ++ pretty x ++ "`") (xobjInfo x)
+
+commandEnvPut :: TernaryCommandCallback
+commandEnvPut c (XObj (Environ env) _ _) (XObj (Sym s _) _ _) x =
+  let e = envInsertAt env s (Binder emptyMeta x)
+   in pure (c, Right (XObj (Environ e) Nothing Nothing))
+commandEnvPut c (XObj (Environ _) _ _) x _ =
+  pure $ evalError c ("I expected the second argument to `Env.put` to be a symbol, but got `" ++ pretty x ++ "`") (xobjInfo x)
+commandEnvPut c x _ _ =
+  pure $ evalError c ("I expected the first argument to `Env.put` to be an environment, but got `" ++ pretty x ++ "`") (xobjInfo x)

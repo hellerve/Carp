@@ -107,3 +107,14 @@ findAllGlobalVariables env =
       findAllGlobalVariables innerEnv
     finder _ =
       []
+
+emptyEnv :: Env
+emptyEnv =
+  Env
+    { envBindings = mempty,
+      envParent = Nothing,
+      envModuleName = Nothing,
+      envUseModules = mempty,
+      envMode = ExternalEnv,
+      envFunctionNestingLevel = 0
+    }
