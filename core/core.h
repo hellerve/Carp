@@ -17,12 +17,12 @@ typedef intptr_t ssize_t;
 #include <inttypes.h>
 #include <locale.h>
 
-typedef char *String;
-typedef char *Pattern;
+typedef char* String;
+typedef char* Pattern;
 typedef int64_t Long;
 typedef uint32_t Char;
 typedef char CChar;
-typedef void *c_code;
+typedef void* c_code;
 
 #if defined NDEBUG
 #define CHK_INDEX(i, n)
@@ -52,15 +52,15 @@ typedef void *c_code;
 typedef struct {
     size_t len;
     size_t capacity;
-    void *data;
+    void* data;
 } Array;
 
 // Lambdas
 typedef struct {
-    void *callback;
-    void *env;
-    void *delete;
-    void *copy;
+    void* callback;
+    void* env;
+    void* delete;
+    void* copy;
 } Lambda;
 
-typedef void *LambdaEnv;
+typedef void* LambdaEnv;
