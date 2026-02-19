@@ -231,13 +231,13 @@ Example:
     ;; commands expand to (command <name>), fns expand to a non-list.
     ;;
     ;; TODO: Support passing anonymous functions.
-    (if (not (or (list? f) (list? g)))
+    (let [f-name (callable-name f)
+          g-name (callable-name g)
+          arguments (callable-args g)]
+      (if (or (list? f-name) (list? g-name) (list? arguments))
       (macro-error "compose can only compose named dynamic functions. To
                      compose anonymous functions, such as curried functions,
                      see comp.")
-      (let [f-name (cadr f)
-            g-name (cadr g)
-            arguments (caddr g)]
         (list 'fn arguments
               ;; Since we call an eval to apply g immediately, we wrap the args in an
               ;; extra quote, otherwise, users would need to double quote any sequence of
@@ -271,16 +271,18 @@ Example:
        "=> (4 5 6)"
        "```")
   (defndynamic curry* [f :rest args]
-    (let [f-name (cadr f)
-          all-args (caddr f)
+    (let [f-name (callable-name f)
+          all-args (callable-args f)
           unfilled-args (- (length all-args) (length args))
           remaining (take unfilled-args all-args)
           ;; Quote the arguments to retain expected behavior and avoid the need
           ;; for double quotes in curried higher-orders, e.g. zip.
           quote-args (map quoted args)]
-      (list 'fn remaining
-            ;; eval to execute the curried function.
-            ;; otherwise, this resolves to the form that will call the function, e.g. (add-three-vals 2 3 1)
-            (list 'eval (list 'apply f-name (list 'quote (append quote-args (collect-into
-                                                                             remaining list))))))))
+      (if (or (list? f-name) (list? all-args))
+        (macro-error "curry* requires a callable with a discoverable name and parameter list.")
+        (list 'fn remaining
+              ;; eval to execute the curried function.
+              ;; otherwise, this resolves to the form that will call the function, e.g. (add-three-vals 2 3 1)
+              (list 'eval (list 'apply f-name (list 'quote (append quote-args (collect-into
+                                                                               remaining list)))))))))
   )

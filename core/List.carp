@@ -150,12 +150,13 @@ Example:
     ;; calls to map or zip (which uses apply) as appropriate--unless we support
     ;; the quoted function name argument in map-internal or the unquoted one in
     ;; apply, we can't use zip and map-internal in map.
-    (if (not (list? f))
-      (f argument-list)
-      (let [function-name (list (cadr f))]
-        (if (array? argument-list)
-          (append function-name (collect-into argument-list list))
-          (append function-name argument-list)))))
+    (let [name (callable-name f)]
+      (if (list? name)
+        (f argument-list)
+        (let [function-name (list name)]
+          (if (array? argument-list)
+            (append function-name (collect-into argument-list list))
+            (append function-name argument-list))))))
 
   (doc any?
        "Checks whether any of the elements in `xs` conforms to the predicate"
@@ -385,4 +386,3 @@ Returns `nil` on failure")
           (if (nil? res)
             res
             (inc res)))))))
-

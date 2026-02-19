@@ -288,7 +288,9 @@ dynamicModule =
             f "get-env" commandGetEnv "gets an environment variable. The result will be `()` if it isn’t set." "(read-file \"CARP_DIR\")",
             f "hash" commandHash "calculates the hash associated with a value." "(hash '('my 'value)) ; => 3175346968842793108",
             f "round" commandRound "rounds its numeric argument." "(round 2.4) ; => 2",
-            f "dynamic-type" commandType "Gets the dynamic type as a string." "(dynamic-type '()) ; => \"list\""
+            f "dynamic-type" commandType "Gets the dynamic type as a string." "(dynamic-type '()) ; => \"list\"",
+            f "callable-name" commandCallableName "Gets the symbolic name of a callable value, if it has one." "(callable-name +) ; => +",
+            f "callable-args" commandCallableArgs "Gets the parameter array of a callable value, if available." "(callable-args Dynamic.map)"
           ]
     binaries =
       let f = addBinaryCommand . spath
