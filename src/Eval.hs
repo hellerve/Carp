@@ -160,7 +160,7 @@ eval ctx xobj@(XObj o info ty) preference =
           (throwErr (SymbolNotFound spath) ctx info)
           (resolveSymbol ctx spath info preference)
     Arr objs -> do
-      (newCtx, evaled) <- foldlM successiveEval (ctx, Right []) objs
+      (newCtx, evaled) <- evalMany ctx objs
       pure
         ( newCtx,
           do
@@ -168,7 +168,7 @@ eval ctx xobj@(XObj o info ty) preference =
             Right (XObj (Arr ok) info ty)
         )
     StaticArr objs -> do
-      (newCtx, evaled) <- foldlM successiveEval (ctx, Right []) objs
+      (newCtx, evaled) <- evalMany ctx objs
       pure
         ( newCtx,
           do
@@ -230,13 +230,17 @@ eval ctx xobj@(XObj o info ty) preference =
     checkStatic' (XObj (External _) _ _) = Left (HasStaticCall xobj info)
     checkStatic' (XObj Ref _ _) = Left (HasStaticCall xobj info)
     checkStatic' x' = Right x'
+    evalMany :: Context -> [XObj] -> IO (Context, Either EvalError [XObj])
+    evalMany startCtx xs = do
+      (newCtx, evaled) <- foldlM successiveEval (startCtx, Right []) xs
+      pure (newCtx, fmap reverse evaled)
     successiveEval (ctx', acc) x =
       case acc of
         Left _ -> pure (ctx', acc)
         Right l -> do
           (newCtx, evald) <- eval ctx' x preference
           pure $ case evald of
-            Right res -> (newCtx, Right (l ++ [res]))
+            Right res -> (newCtx, Right (res : l))
             Left err -> (newCtx, Left err)
     evaluateIf :: Evaluator
     evaluateIf (IfPat _ cond true false) = do
@@ -309,7 +313,7 @@ eval ctx xobj@(XObj o info ty) preference =
     evaluateFn _ = pure (evalError ctx (format (GenericMalformed xobj)) (xobjInfo xobj))
     evaluateClosure :: Evaluator
     evaluateClosure (AppPat (ClosurePat params body c) args) = do
-      (newCtx, evaledArgs) <- foldlM successiveEval (ctx, Right []) args
+      (newCtx, evaledArgs) <- evalMany ctx args
       case evaledArgs of
         Right okArgs -> do
           let newGlobals = (contextGlobalEnv newCtx) <> (contextGlobalEnv c)
@@ -321,7 +325,7 @@ eval ctx xobj@(XObj o info ty) preference =
     evaluateClosure _ = pure (evalError ctx (format (GenericMalformed xobj)) (xobjInfo xobj))
     evaluateDynamicFn :: Evaluator
     evaluateDynamicFn (AppPat (DynamicFnPat _ params body) args) = do
-      (newCtx, evaledArgs) <- foldlM successiveEval (ctx, Right []) args
+      (newCtx, evaledArgs) <- evalMany ctx args
       case evaledArgs of
         Right okArgs -> apply newCtx body params okArgs
         Left err -> pure (newCtx, Left err)
@@ -337,25 +341,25 @@ eval ctx xobj@(XObj o info ty) preference =
     evaluateCommand (AppPat (CommandPat (NullaryCommandFunction nullary) _ _) []) =
       nullary ctx
     evaluateCommand (AppPat (CommandPat (UnaryCommandFunction unary) _ _) [x]) = do
-      (c, evaledArgs) <- foldlM successiveEval (ctx, Right []) [x]
+      (c, evaledArgs) <- evalMany ctx [x]
       case evaledArgs of
         Right [x'] -> unary c x'
-        Left err -> pure (ctx, Left err)
-        _ -> error "eval: failed to evaluate command arguments"
+        Left err -> pure (c, Left err)
+        _ -> pure (evalError c (format (GenericMalformed xobj)) (xobjInfo xobj))
     evaluateCommand (AppPat (CommandPat (BinaryCommandFunction binary) _ _) [x, y]) = do
-      (c, evaledArgs) <- foldlM successiveEval (ctx, Right []) [x, y]
+      (c, evaledArgs) <- evalMany ctx [x, y]
       case evaledArgs of
         Right [x', y'] -> binary c x' y'
-        Left err -> pure (ctx, Left err)
-        _ -> error "eval: failed to evaluate command arguments"
+        Left err -> pure (c, Left err)
+        _ -> pure (evalError c (format (GenericMalformed xobj)) (xobjInfo xobj))
     evaluateCommand (AppPat (CommandPat (TernaryCommandFunction ternary) _ _) [x, y, z]) = do
-      (c, evaledArgs) <- foldlM successiveEval (ctx, Right []) [x, y, z]
+      (c, evaledArgs) <- evalMany ctx [x, y, z]
       case evaledArgs of
         Right [x', y', z'] -> ternary c x' y' z'
-        Left err -> pure (ctx, Left err)
-        _ -> error "eval: failed to evaluate command arguments"
+        Left err -> pure (c, Left err)
+        _ -> pure (evalError c (format (GenericMalformed xobj)) (xobjInfo xobj))
     evaluateCommand (AppPat (CommandPat (VariadicCommandFunction variadic) _ _) args) = do
-      (c, evaledArgs) <- foldlM successiveEval (ctx, Right []) args
+      (c, evaledArgs) <- evalMany ctx args
       case evaledArgs of
         Right args' -> variadic c args'
         Left err -> pure (ctx, Left err)
