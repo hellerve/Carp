@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE TupleSections #-}
 
 module Env
@@ -189,24 +190,34 @@ updateEnv _ _ _ = Left NoEnvInNonModule
 -- | Walk down an environment chain.
 walk' :: Mode -> Env -> SymPath -> Either EnvironmentError Env
 walk' _ e (SymPath [] _) = pure e
-walk' mode' e (SymPath (p : ps) name) =
+walk' mode' e (SymPath path _) =
   do
-    (_, binder) <- get e p
-    go (SymPath ps name) binder
+    binder <- descend e path
+    nextEnv mode' binder
   where
-    go :: SymPath -> Binder -> Either EnvironmentError Env
-    go (SymPath [] _) binder = nextEnv mode' binder
-    go path binder =
-      do
-        env <- nextEnv Values binder
-        walk' mode' env path
+    descend :: Env -> [String] -> Either EnvironmentError Binder
+    descend _ [] = error "impossible: walk' called with empty path"
+    descend !env [name] = snd <$> get env name
+    descend !env (name : rest) = do
+      (_, binder) <- get env name
+      next <- nextEnv Values binder
+      descend next rest
 
 -- | Generic *unidirectional* retrieval of binders (does not check parents).
 walkAndGet :: Environment e => e -> SymPath -> (Either EnvironmentError e, Either EnvironmentError Binder)
 walkAndGet e path@(SymPath _ name) =
   let target = walk' (modality e) (prj e) path
-      binder = target >>= \t -> get t name
-   in (fmap inj target, fmap snd binder)
+      binder = target >>= getBinderFromEnv name
+   in (fmap inj target, binder)
+  where
+    getBinderFromEnv :: String -> Env -> Either EnvironmentError Binder
+    getBinderFromEnv needle env =
+      case Map.lookup needle (envBindings env) of
+        Nothing -> Left $ BindingNotFound needle env
+        Just b -> Right b
+{-# INLINE walkAndGet #-}
+{-# SPECIALIZE walkAndGet :: Env -> SymPath -> (Either EnvironmentError Env, Either EnvironmentError Binder) #-}
+{-# SPECIALIZE walkAndGet :: TypeEnv -> SymPath -> (Either EnvironmentError TypeEnv, Either EnvironmentError Binder) #-}
 
 -- | Direct lookup for a binder in environment `e`.
 -- The environment returned in the output will be the same as that given as input.
@@ -255,7 +266,16 @@ search e path =
 
 -- | Same as `search` but only returns a binder.
 searchBinder :: Environment e => e -> SymPath -> Either EnvironmentError Binder
-searchBinder e path = fmap snd (search e path)
+searchBinder e path =
+  case walkAndGet e path of
+    (_, Right b) -> Right b
+    (Right e', Left err) -> checkParent e' err
+    (Left err, Left _) -> checkParent e err
+  where
+    checkParent env err = maybe (Left err) (`searchBinder` path) (parent env)
+{-# INLINE searchBinder #-}
+{-# SPECIALIZE searchBinder :: Env -> SymPath -> Either EnvironmentError Binder #-}
+{-# SPECIALIZE searchBinder :: TypeEnv -> SymPath -> Either EnvironmentError Binder #-}
 
 --------------------------------------------------------------------------------
 -- Type-specialized retrievals

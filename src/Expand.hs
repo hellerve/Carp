@@ -2,7 +2,6 @@ module Expand (expandAll, expand, ExpansionMode (..), replaceSourceInfoOnXObj) w
 
 import Context
 import Control.Monad.State (State, evalState, get, put)
-import Data.Either (fromRight)
 import Data.Foldable (foldlM)
 import Env
 import EvalError
@@ -287,19 +286,19 @@ expand mode eval ctx xobj =
             Right (XObj (Lst [XObj (Command (UnaryCommandFunction unary)) _ _, _, _]) _ _) ->
               case expandedArgs of
                 Right [x] -> unary ctx'' x
-                _ -> pure (evalError ctx'' (format (GenericMalformed xobj)) (xobjInfo xobj))
+                _ -> pure (evalError ctx'' "Failed to expand unary command arguments." (xobjInfo xobj))
             Right (XObj (Lst [XObj (Command (BinaryCommandFunction binary)) _ _, _, _]) _ _) ->
               case expandedArgs of
                 Right [x, y] -> binary ctx'' x y
-                _ -> pure (evalError ctx'' (format (GenericMalformed xobj)) (xobjInfo xobj))
+                _ -> pure (evalError ctx'' "Failed to expand binary command arguments." (xobjInfo xobj))
             Right (XObj (Lst [XObj (Command (TernaryCommandFunction ternary)) _ _, _, _]) _ _) ->
               case expandedArgs of
                 Right [x, y, z] -> ternary ctx'' x y z
-                _ -> pure (evalError ctx'' (format (GenericMalformed xobj)) (xobjInfo xobj))
+                _ -> pure (evalError ctx'' "Failed to expand ternary command arguments." (xobjInfo xobj))
             Right (XObj (Lst [XObj (Command (VariadicCommandFunction variadic)) _ _, _, _]) _ _) ->
               case expandedArgs of
                 Right ea -> variadic ctx'' ea
-                _ -> pure (evalError ctx'' (format (GenericMalformed xobj)) (xobjInfo xobj))
+                _ -> pure (evalError ctx'' "Failed to expand variadic command arguments." (xobjInfo xobj))
             Right _ ->
               pure
                 ( ctx'',
