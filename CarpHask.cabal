@@ -27,6 +27,8 @@ library
                        Deftype,
                        Emit,
                        Env,
+                       EvalBind,
+                       EvalBound,
                        EvalError,
                        Eval,
                        Expand,

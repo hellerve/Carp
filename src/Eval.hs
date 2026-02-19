@@ -11,7 +11,7 @@ import Control.Monad.State
 import Data.Bits ((.&.))
 import Data.Either (fromRight)
 import Data.Foldable (foldlM, foldrM)
-import Data.List (foldl', isSuffixOf)
+import Data.List (isSuffixOf)
 import Data.List.Split (splitOn, splitWhen)
 import Data.Maybe (fromJust, fromMaybe, isJust)
 import Emit
@@ -43,7 +43,7 @@ import Prelude hiding (exp, mod)
 data LookupPreference
   = PreferDynamic
   | PreferGlobal
-  | PreferLocal [SymPath]
+  | PreferLocal (Set.Set String) (Map.Map String XObj)
   deriving (Show)
 
 type Evaluator = [XObj] -> IO (Context, Either EvalError XObj)
@@ -55,6 +55,33 @@ evalDynamic ctx xobj = eval ctx xobj PreferDynamic
 -- Prefer global bindings
 evalStatic :: Context -> XObj -> IO (Context, Either EvalError XObj)
 evalStatic ctx xobj = eval ctx xobj PreferGlobal
+
+forbiddenFastApplyForms :: Set.Set String
+forbiddenFastApplyForms =
+  Set.fromList
+    [ "set!",
+      "let",
+      "fn",
+      "eval",
+      "with",
+      "match",
+      "match-ref",
+      "while"
+    ]
+
+supportsFastApplyBody :: XObj -> Bool
+supportsFastApplyBody = go
+  where
+    go (XObj (Sym _ _) _ _) = True
+    go (XObj (Lst []) _ _) = True
+    go (XObj (Lst (h : xs)) _ _) =
+      case h of
+        XObj (Sym (SymPath [] name) _) _ _
+          | Set.member name forbiddenFastApplyForms -> False
+        _ -> go h && all go xs
+    go (XObj (Arr xs) _ _) = all go xs
+    go (XObj (StaticArr xs) _ _) = all go xs
+    go _ = True
 
 -- | Resolve a symbol to its value in the current context.
 --
@@ -76,62 +103,83 @@ resolveSymbol ::
 resolveSymbol ctx spath@(SymPath p n) info preference =
   tryAllLookups preference
   where
-    tryAllLookups PreferDynamic = getDynamic <|> fullLookup
-    tryAllLookups PreferGlobal = getGlobal spath <|> fullLookup
-    tryAllLookups (PreferLocal shadows) = (if spath `elem` shadows then getLocal n else getDynamic) <|> fullLookup
-    fullLookup = tryDynamicLookup <|> (if null p then tryInternalLookup spath <|> tryLookup spath else tryLookup spath)
+    globalEnv = contextGlobalEnv ctx
+    dynamicPath = SymPath ("Dynamic" : p) n
+    contextualPath = SymPath (contextPath ctx ++ p) n
+    useModules = Set.toList (envUseModules globalEnv)
+    tryAllLookups PreferDynamic = getDynamic <|> resolveByShape False True
+    tryAllLookups PreferGlobal = getGlobal spath <|> resolveByShape False False
+    tryAllLookups (PreferLocal localNames localValues) =
+      let isLocalUnqualified = null p && Set.member n localNames
+          dynamicAlreadyTried = not isLocalUnqualified
+       in (if isLocalUnqualified then getLocalFast n localValues <|> getLocal n else getDynamic) <|> resolveByShape isLocalUnqualified dynamicAlreadyTried
+    resolveByShape skipInternalLookup dynamicAlreadyTried =
+      if null p
+        then resolveUnqualified skipInternalLookup dynamicAlreadyTried
+        else resolveQualified dynamicAlreadyTried
+    resolveUnqualified skipInternalLookup dynamicAlreadyTried =
+      (if dynamicAlreadyTried then Nothing else tryDynamicLookup)
+        <|> (if skipInternalLookup then Nothing else tryInternalLookup n)
+        <|> tryGlobalLookups spath
+    resolveQualified dynamicAlreadyTried =
+      (if dynamicAlreadyTried then Nothing else tryDynamicLookup) <|> tryGlobalLookups spath
     getDynamic =
       do
-        (Binder _ found) <- maybeId (E.findBinder (contextGlobalEnv ctx) (SymPath ("Dynamic" : p) n))
+        (Binder _ found) <- maybeId (E.findBinder globalEnv dynamicPath)
         pure (ctx, Right (resolveDef found))
     getGlobal path =
       do
-        (Binder meta found) <- maybeId (E.findBinder (contextGlobalEnv ctx) path)
+        (Binder meta found) <- maybeId (E.findBinder globalEnv path)
         checkPrivate meta found
     tryDynamicLookup =
       do
-        (Binder meta found) <- maybeId (E.searchBinder (contextGlobalEnv ctx) (SymPath ("Dynamic" : p) n))
+        (Binder meta found) <- maybeId (E.findBinder globalEnv dynamicPath)
         checkPrivate meta found
     getLocal name =
       do
-        internal <- contextInternalEnv ctx
-        (Binder _ found) <- maybeId (E.getBinder internal name)
+        (Binder _ found) <- lookupInternalBinder (contextInternalEnv ctx) name
         pure (ctx, Right (resolveDef found))
-    -- TODO: Deprecate this function?
-    -- The behavior here is a bit nefarious since it relies on cached
-    -- environment parents (it calls `search` on the "internal" binder).
-    -- But for now, it seems to be needed for some cases.
-    tryInternalLookup path =
-      contextInternalEnv ctx
-        >>= \e ->
-          maybeId (E.searchBinder e path)
-            >>= \(Binder meta found) -> checkPrivate meta found
-    tryLookup path =
-      ( maybeId (E.searchBinder (contextGlobalEnv ctx) path)
+    getLocalFast name localValues =
+      do
+        value <- Map.lookup name localValues
+        pure (ctx, Right value)
+    -- Fast path for unqualified internal lookups:
+    -- this avoids the generic Env.searchBinder error-path allocations when
+    -- walking local parent scopes.
+    tryInternalLookup name =
+      lookupInternalBinder (contextInternalEnv ctx) name
+        >>= \(Binder _ found) -> pure (ctx, Right (resolveDef found))
+    tryGlobalLookups path =
+      ( maybeId (E.findBinder globalEnv path)
           >>= \(Binder meta found) -> checkPrivate meta found
       )
-        <|> ( maybeId (E.searchBinder (contextGlobalEnv ctx) (SymPath (contextPath ctx ++ p) n))
-                >>= \(Binder meta found) -> checkPrivate meta found
-            )
+        <|> tryContextualLookup path
         <|> ( maybeId (lookupBinderInTypeEnv ctx path)
                 >>= \(Binder _ found) -> pure (ctx, Right (resolveDef found))
             )
-        <|> ( foldl
-                (<|>)
-                Nothing
-                ( map
-                    ( \(SymPath p' n') ->
-                        maybeId (E.searchBinder (contextGlobalEnv ctx) (SymPath (p' ++ (n' : p)) n))
-                          >>= \(Binder meta found) -> checkPrivate meta found
-                    )
-                    (Set.toList (envUseModules (contextGlobalEnv ctx)))
-                )
-            )
+        <|> lookupInUsedModules useModules
+      where
+        tryContextualLookup path'
+          | contextualPath == path' = Nothing
+          | otherwise =
+            maybeId (E.findBinder globalEnv contextualPath)
+              >>= \(Binder meta found) -> checkPrivate meta found
+        lookupInUsedModules [] = Nothing
+        lookupInUsedModules (SymPath p' n' : rest) =
+          ( maybeId (E.findBinder globalEnv (SymPath (p' ++ (n' : p)) n))
+              >>= \(Binder meta found) -> checkPrivate meta found
+          )
+            <|> lookupInUsedModules rest
     checkPrivate meta found =
       pure $
         if metaIsTrue meta "private"
           then throwErr (PrivateBinding (getPath found)) ctx info
           else (ctx, Right (resolveDef found))
+    lookupInternalBinder Nothing _ = Nothing
+    lookupInternalBinder (Just e) name =
+      case Map.lookup name (envBindings e) of
+        Just b -> Just b
+        Nothing -> lookupInternalBinder (envParent e) name
     resolveDef (XObj (Lst [XObj DefDynamic _ _, _, value]) _ _) = value
     resolveDef (XObj (Lst [XObj LocalDef _ _, _, value]) _ _) = value
     resolveDef x = x
@@ -184,42 +232,41 @@ eval ctx xobj@(XObj o info ty) preference =
     eval' form =
       case validate form of
         Left e -> pure (evalError ctx (format e) (xobjInfo xobj))
-        Right form' ->
-          case form' of
-            (IfPat _ _ _ _) -> evaluateIf form'
-            (DefnPat _ _ _ _) -> specialCommandDefine ctx xobj
-            (DefPat _ _ _) -> specialCommandDefine ctx xobj
-            (ThePat _ _ _) -> evaluateThe form'
-            (LetPat _ _ _) -> evaluateLet form'
-            (FnPat _ _ _) -> evaluateFn form'
-            (AppPat (ClosurePat _ _ _) _) -> evaluateClosure form'
-            (AppPat (DynamicFnPat _ _ _) _) -> evaluateDynamicFn form'
-            (AppPat (MacroPat _ _ _) _) -> evaluateMacro form'
-            (AppPat (CommandPat _ _ _) _) -> evaluateCommand form'
-            (AppPat (PrimitivePat _ _ _) _) -> evaluatePrimitive form'
-            (WithPat _ sym@(SymPat path _) forms) -> specialCommandWith ctx sym path forms
-            (DoPat _ forms) -> evaluateSideEffects forms
-            (WhilePat _ cond body) -> specialCommandWhile ctx cond body
-            (SetPat _ iden value) -> specialCommandSet ctx (iden : [value])
-            -- This next match prevents hangs on input such as:
-            -- `((def foo 2) 4)`. The inner list's head symbol is
-            -- resolved eagerly; if it's a static keyword, we
-            -- break the evaluation loop immediately.
-            (AppPat self@(ListPat (x@(SymPat _ _) : _)) args) ->
-              do
-                (_, evald) <- eval ctx x preference
-                case evald of
-                  Left err -> pure (evalError ctx (show err) (xobjInfo xobj))
-                  Right x' -> case checkStatic' x' of
-                    Right _ -> evaluateApp (self : args)
-                    Left er -> pure (ctx, Left er)
-            (AppPat (ListPat _) _) -> evaluateApp form'
-            (AppPat (SymPat _ _) _) -> evaluateApp form'
-            (AppPat (XObj other _ _) _)
-              | isResolvableStaticObj other ->
-                pure (ctx, (Left (HasStaticCall xobj info)))
-            [] -> pure (ctx, dynamicNil)
-            _ -> pure (throwErr (UnknownForm xobj) ctx (xobjInfo xobj))
+        Right form' -> case form' of
+          (IfPat _ _ _ _) -> evaluateIf form'
+          (DefnPat _ _ _ _) -> specialCommandDefine ctx xobj
+          (DefPat _ _ _) -> specialCommandDefine ctx xobj
+          (ThePat _ _ _) -> evaluateThe form'
+          (LetPat _ _ _) -> evaluateLet form'
+          (FnPat _ _ _) -> evaluateFn form'
+          (AppPat (ClosurePat _ _ _) _) -> evaluateClosure form'
+          (AppPat (DynamicFnPat _ _ _) _) -> evaluateDynamicFn form'
+          (AppPat (MacroPat _ _ _) _) -> evaluateMacro form'
+          (AppPat (CommandPat _ _ _) _) -> evaluateCommand form'
+          (AppPat (PrimitivePat _ _ _) _) -> evaluatePrimitive form'
+          (WithPat _ sym@(SymPat path _) forms) -> specialCommandWith ctx sym path forms
+          (DoPat _ forms) -> evaluateSideEffects forms
+          (WhilePat _ cond body) -> specialCommandWhile ctx cond body
+          (SetPat _ iden value) -> specialCommandSet ctx (iden : [value])
+          -- This next match prevents hangs on input such as:
+          -- `((def foo 2) 4)`. The inner list's head symbol is
+          -- resolved eagerly; if it's a static keyword, we
+          -- break the evaluation loop immediately.
+          (AppPat self@(ListPat (x@(SymPat _ _) : _)) args) ->
+            do
+              (_, evald) <- eval ctx x preference
+              case evald of
+                Left err -> pure (evalError ctx (show err) (xobjInfo xobj))
+                Right x' -> case checkStatic' x' of
+                  Right _ -> evaluateApp (self : args)
+                  Left er -> pure (ctx, Left er)
+          (AppPat (ListPat _) _) -> evaluateApp form'
+          (AppPat (SymPat _ _) _) -> evaluateApp form'
+          (AppPat (XObj other _ _) _)
+            | isResolvableStaticObj other ->
+              pure (ctx, (Left (HasStaticCall xobj info)))
+          [] -> pure (ctx, dynamicNil)
+          _ -> pure (throwErr (UnknownForm xobj) ctx (xobjInfo xobj))
     -- Check if an XObj is a static form that requires compilation.
     -- Only check for BARE static objects, not lists containing static objects.
     checkStatic' (XObj Def _ _) = Left (HasStaticCall xobj info)
@@ -271,7 +318,7 @@ eval ctx xobj@(XObj o info ty) preference =
       case eitherCtx of
         Left err -> pure (ctx, Left err)
         Right newCtx -> do
-          (finalCtx, evaledBody) <- eval newCtx body (PreferLocal (map (\(name, _) -> (SymPath [] name)) binds))
+          (finalCtx, evaledBody) <- eval newCtx body (PreferLocal (Set.fromList (map fst binds)) Map.empty)
           let e = fromMaybe E.empty $ contextInternalEnv finalCtx
               parentEnv = envParent e
           pure
@@ -299,7 +346,12 @@ eval ctx xobj@(XObj o info ty) preference =
               (newCtx, res) <- eval ctx'' x preference
               case res of
                 Right okX ->
-                  pure $ Right (fromRight (error "Failed to eval let binding!!") (bindLetDeclaration (newCtx {contextInternalEnv = origin}) n okX))
+                  pure $
+                    Right
+                      ( fromRight
+                          (error "Failed to eval let binding!!")
+                          (bindLetDeclaration (replaceInternalEnvMaybe newCtx origin) n okX)
+                      )
                 Left err -> pure $ Left err
     evaluateLet _ = pure (evalError ctx (format (GenericMalformed xobj)) (xobjInfo xobj))
     evaluateFn :: Evaluator
@@ -431,25 +483,24 @@ apply ctx@Context {contextInternalEnv = internal} body params args =
     callWith proper rest = do
       let n = length proper
           insideEnv = Env Map.empty internal Nothing Set.empty InternalEnv 0
-          insideEnv' =
-            foldl'
-              (\e (p, x) -> fromRight (error "Couldn't add local def ") (E.insertX e (SymPath [] p) (toLocalDef p x)))
-              insideEnv
-              (zip proper (take n args))
-          insideEnv'' =
+          properBinds = zip proper (take n args)
+          restBinds =
             if null rest
-              then insideEnv'
-              else
-                fromRight
-                  (error "couldn't insert into inside env")
-                  ( E.insertX
-                      insideEnv'
-                      (SymPath [] (head rest))
-                      (XObj (Lst (drop n args)) Nothing Nothing)
-                  )
+              then []
+              else [(head rest, XObj (Lst (drop n args)) Nothing Nothing)]
+          localBinders =
+            map (\(name, value) -> (name, toBinder (toLocalDef name value))) properBinds
+              ++ map (\(name, value) -> (name, toBinder value)) restBinds
+          insideEnv'' = insideEnv {envBindings = Map.fromList localBinders}
           binds = if null rest then proper else proper ++ [(head rest)]
-      (c, r) <- (eval (replaceInternalEnv ctx insideEnv'') body (PreferLocal (map (\x -> (SymPath [] x)) binds)))
-      pure (c {contextInternalEnv = internal}, r)
+          localValues = Map.fromList (properBinds ++ restBinds)
+          localNames = Set.fromList binds
+      let canUseFastPath = supportsFastApplyBody body
+      if canUseFastPath
+        then eval ctx body (PreferLocal localNames localValues)
+        else do
+          (c, r) <- eval (replaceInternalEnv ctx insideEnv'') body (PreferLocal localNames Map.empty)
+          pure (replaceInternalEnvMaybe c internal, r)
 
 -- | Parses a string and then converts the resulting forms to commands, which are evaluated in order.
 executeString :: Bool -> Bool -> Context -> String -> String -> IO Context
@@ -530,7 +581,7 @@ folder context xobj = do
 
 -- | Take a repl command and execute it.
 executeCommand :: Context -> XObj -> IO (XObj, Context)
-executeCommand ctx@(Context env _ _ _ _ _ _ _) xobj =
+executeCommand ctx@(Context env _ _ _ _ _ _ _ _) xobj =
   do
     when (isJust (envModuleName env)) $
       error ("Global env module name is " ++ fromJust (envModuleName env) ++ " (should be Nothing).")
@@ -691,14 +742,14 @@ annotateWithinContext ctx xobj = do
                     Right ok -> pure (ctx, Right ok)
 
 primitiveDefmodule :: VariadicPrimitiveCallback
-primitiveDefmodule xobj ctx@(Context env i tenv pathStrings _ _ _ _) (XObj (Sym (SymPath [] moduleName) _) si _ : innerExpressions) =
+primitiveDefmodule xobj ctx@(Context env i tenv pathStrings _ _ _ _ _) (XObj (Sym (SymPath [] moduleName) _) si _ : innerExpressions) =
   -- N.B. The `envParent` rewrite at the end of this line is important!
   -- lookups delve into parent envs by default, which is normally what we want, but in this case it leads to problems
   -- when submodules happen to share a name with an existing module or type at the global level.
   either (const (defineNewModule emptyMeta)) updateExistingModule (E.searchBinder ((fromRight env (E.getInnerEnv env pathStrings)) {envParent = Nothing}) (SymPath [] moduleName))
     >>= defineModuleBindings
     >>= \(newCtx, result) ->
-      let updater c = (c {contextInternalEnv = (E.parent =<< contextInternalEnv c)})
+      let updater c = replaceInternalEnvMaybe c (E.parent =<< contextInternalEnv c)
        in case result of
             Left err -> pure (newCtx, Left err)
             Right _ -> pure (updater (popModulePath newCtx), dynamicNil)

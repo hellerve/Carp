@@ -997,6 +997,7 @@ data Context = Context
     contextInternalEnv :: Maybe Env,
     contextTypeEnv :: TypeEnv,
     contextPath :: [String],
+    contextBindingEpoch :: !Int,
     contextProj :: Project,
     contextLastInput :: String,
     contextExecMode :: ExecutionMode,
@@ -1019,7 +1020,11 @@ instance Hashable Context where
       `hashWithSalt` contextTypeEnv
 
 popModulePath :: Context -> Context
-popModulePath ctx = ctx {contextPath = init (contextPath ctx)}
+popModulePath ctx =
+  ctx
+    { contextPath = init (contextPath ctx),
+      contextBindingEpoch = contextBindingEpoch ctx + 1
+    }
 
 pushFrame :: Context -> XObj -> Context
 pushFrame ctx x = ctx {contextHistory = x : contextHistory ctx}
@@ -1140,7 +1145,8 @@ instance Semigroup Context where
      in c
           { contextGlobalEnv = global' <> global,
             contextInternalEnv = internal <> internal',
-            contextTypeEnv = TypeEnv (typeEnv' <> typeEnv)
+            contextTypeEnv = TypeEnv (typeEnv' <> typeEnv),
+            contextBindingEpoch = max (contextBindingEpoch c) (contextBindingEpoch c') + 1
           }
 
 toLocalDef :: String -> XObj -> XObj
