@@ -17,6 +17,8 @@ import Data.Char (ord)
 import Data.Functor ((<&>))
 import Data.List (intercalate, isPrefixOf, sortOn)
 import Data.Maybe (fromJust, fromMaybe)
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TB
 import Env
 import Info
 import qualified Map
@@ -105,13 +107,19 @@ instance Show ToCError where
 
 data ToCMode = Functions | Globals | All deriving (Show)
 
-newtype EmitterState = EmitterState {emitterSrc :: String}
+newtype EmitterState = EmitterState {emitterBuilder :: TB.Builder}
+
+emptyEmitterState :: EmitterState
+emptyEmitterState = EmitterState mempty
+
+renderEmitterState :: EmitterState -> String
+renderEmitterState = TL.unpack . TB.toLazyText . emitterBuilder
 
 appendToSrc :: String -> State EmitterState ()
-appendToSrc moreSrc = modify (\s -> s {emitterSrc = emitterSrc s ++ moreSrc})
+appendToSrc moreSrc = modify (\s -> s {emitterBuilder = emitterBuilder s <> TB.fromString moreSrc})
 
 toC :: ToCMode -> Binder -> String
-toC toCMode (Binder meta root) = emitterSrc (execState (visit startingIndent root) (EmitterState ""))
+toC toCMode (Binder meta root) = renderEmitterState (execState (visit startingIndent root) emptyEmitterState)
   where
     startingIndent = case toCMode of
       Functions -> 0
@@ -486,12 +494,12 @@ toC toCMode (Binder meta root) = emitterSrc (execState (visit startingIndent roo
             visitWhileExpression ind =
               do
                 s <- get
-                let (exprRetVar, exprResultState) = runState (visit ind expr) (EmitterState "")
-                    exprSrc = emitterSrc exprResultState
+                let (exprRetVar, exprResultState) = runState (visit ind expr) emptyEmitterState
+                    exprBuilder = emitterBuilder exprResultState
                 modify
                   ( \x ->
                       x
-                        { emitterSrc = emitterSrc s ++ exprSrc
+                        { emitterBuilder = emitterBuilder s <> exprBuilder
                         }
                   )
                 pure exprRetVar
@@ -860,7 +868,7 @@ defStructToDeclaration structTy@(StructTy _ _) _ rest =
         appendToSrc ("} " ++ tyToC structTy ++ ";\n")
    in if isTypeGeneric structTy
         then "" -- ("// " ++ show structTy ++ "\n")
-        else emitterSrc (execState visit (EmitterState ""))
+        else renderEmitterState (execState visit emptyEmitterState)
 defStructToDeclaration _ _ _ = error "defstructtodeclaration"
 
 defSumtypeToDeclaration :: Ty -> [XObj] -> String
@@ -896,7 +904,7 @@ defSumtypeToDeclaration sumTy@(StructTy _ _) rest =
       emitSumtypeCaseTagDefinition _ = error "emitsumtypecasetagdefinition"
    in if isTypeGeneric sumTy
         then ""
-        else emitterSrc (execState visit (EmitterState ""))
+        else renderEmitterState (execState visit emptyEmitterState)
 defSumtypeToDeclaration _ _ = error "defsumtypetodeclaration"
 
 defaliasToDeclaration :: Ty -> SymPath -> String
