@@ -1,0 +1,91 @@
+(system-include "carp_bench.h")
+(register get-time-elapsed (Fn [] Double) "get_time_elapsed")
+
+(use Map)
+
+(def n-iters 500)
+(def n-keys 1000)
+
+(defn make-keys []
+  (let-do [ks (Array.allocate n-keys)]
+    (for [i 0 n-keys]
+      (Array.aset-uninitialized! &ks i (fmt "key-%d-padding-to-make-it-longer" i)))
+    ks))
+
+(defn make-vals []
+  (let-do [vs (Array.allocate n-keys)]
+    (for [i 0 n-keys]
+      (Array.aset-uninitialized! &vs i (fmt "value-%d-with-some-extra-content" i)))
+    vs))
+
+(defn make-map [ks vs]
+  (let-do [m (Map.create)]
+    (for [i 0 n-keys]
+      (set! m (Map.put m (Array.unsafe-nth ks i) (Array.unsafe-nth vs i))))
+    m))
+
+(defn main []
+  (let [t0 0.0 t1 0.0 sink 0
+        ks (make-keys)
+        vs (make-vals)]
+    (do
+      ;; put
+      (set! t0 (get-time-elapsed))
+      (for [i 0 n-iters]
+        (let [m (make-map &ks &vs)]
+          (set! sink (+ sink (Map.length &m)))))
+      (set! t1 (get-time-elapsed))
+      (IO.println &(fmt "put:      %.0fns/iter" (/ (- t1 t0) (Double.from-int n-iters))))
+
+      ;; get (all hits)
+      (let [m (make-map &ks &vs)]
+        (do
+          (set! t0 (get-time-elapsed))
+          (for [iter 0 n-iters]
+            (for [i 0 n-keys]
+              (set! sink (+ sink (String.length &(Map.get &m (Array.unsafe-nth &ks i)))))))
+          (set! t1 (get-time-elapsed))
+          (IO.println &(fmt "get:      %.0fns/iter" (/ (- t1 t0) (Double.from-int n-iters))))))
+
+      ;; remove
+      (set! t0 (get-time-elapsed))
+      (for [iter 0 n-iters]
+        (let-do [m (make-map &ks &vs)]
+          (for [i 0 n-keys]
+            (set! m (Map.remove m (Array.unsafe-nth &ks i))))
+          (set! sink (+ sink (Map.length &m)))))
+      (set! t1 (get-time-elapsed))
+      (IO.println &(fmt "remove:   %.0fns/iter  (includes put)" (/ (- t1 t0) (Double.from-int n-iters))))
+
+      ;; contains (1000 hits + 1000 misses)
+      (let [m (make-map &ks &vs)
+            miss-ks (let-do [a (Array.allocate n-keys)]
+                      (for [i 0 n-keys]
+                        (Array.aset-uninitialized! &a i (fmt "miss-%d-padding-to-make-it-longer" i)))
+                      a)]
+        (do
+          (set! t0 (get-time-elapsed))
+          (for [iter 0 n-iters]
+            (do
+              (for [i 0 n-keys]
+                (when (Map.contains? &m (Array.unsafe-nth &ks i))
+                  (set! sink (+ sink 1))))
+              (for [i 0 n-keys]
+                (when (Map.contains? &m (Array.unsafe-nth &miss-ks i))
+                  (set! sink (+ sink 1))))))
+          (set! t1 (get-time-elapsed))
+          (IO.println &(fmt "contains: %.0fns/iter" (/ (- t1 t0) (Double.from-int n-iters))))))
+
+      ;; update
+      (set! t0 (get-time-elapsed))
+      (for [iter 0 n-iters]
+        (let-do [m (the (Map String Int) (Map.create))]
+          (for [i 0 n-keys]
+            (set! m (Map.update-with-default m (Array.unsafe-nth &ks i) &Int.inc 0)))
+          (for [i 0 n-keys]
+            (set! m (Map.update-with-default m (Array.unsafe-nth &ks i) &Int.inc 0)))
+          (set! sink (+ sink (Map.length &m)))))
+      (set! t1 (get-time-elapsed))
+      (IO.println &(fmt "update:   %.0fns/iter" (/ (- t1 t0) (Double.from-int n-iters))))
+
+      (when (= sink -1) (IO.println "!")))))
