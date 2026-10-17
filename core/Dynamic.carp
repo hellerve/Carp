@@ -9,6 +9,28 @@
       (let [s (s-expr x)]
         (and (not (empty? s)) (= 'dynamic (dynamic-type (car s)))))))
 
+  (doc as-form "answers `x` when it is a form, the kind of value a macro may
+expand to: lists and arrays are rebuilt element by element, and a function,
+a macro, or a list or array holding one is a macro error.")
+  (defndynamic as-form [x]
+    (cond
+      (= (dynamic-type x) 'list) (map Dynamic.as-form x)
+      (= (dynamic-type x) 'array) (collect-into (map Dynamic.as-form x) array)
+      (= (dynamic-type x) 'closure) (macro-error "eval-form: a function is not a form")
+      (= (dynamic-type x) 'fn) (macro-error "eval-form: a function is not a form")
+      (= (dynamic-type x) 'macro) (macro-error "eval-form: a macro is not a form")
+      x))
+
+  (doc eval-form "evaluates `x` like `eval`, and answers the result when it
+is a form; anything else is a macro error. A macro that expands to what it
+evaluates should use this rather than `eval`, which may answer any value.
+
+```
+(defmacro twice [x] (eval-form (list 'list x x)))
+```")
+  (defndynamic eval-form [x]
+    (Dynamic.as-form (eval x)))
+
   (doc nil "is the value `nil`, i.e. the empty list.")
   (defdynamic nil '())
 

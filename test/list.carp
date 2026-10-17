@@ -16,5 +16,10 @@
                         (Dynamic.sort '("one" "two---" "three" "four")
                                       (fn [a b]
                                         (< (String.length a) (String.length b))))
-                        "Dynamic.sort sorts using predicate"))
+                        "Dynamic.sort sorts using predicate")
+
+  (assert-dynamic-equal test
+                        '(1 2 (3 [4 a]))
+                        (Dynamic.eval-form '(list 1 (+ 1 1) (list 3 [(+ 2 2) 'a])))
+                        "Dynamic.eval-form answers the form an expression evaluates to"))
 
