@@ -399,7 +399,9 @@ resolveSymbol ctx spath@(SymPath p n) info preference =
         else resolveFound found
     privateAccessible (SymPath modulePath _) =
       null modulePath || modulePath == contextPath ctx
-    lookupInternalBinder = E.lookupBinderInParentChain
+    -- The parent chain can end in a stale snapshot of a module or the global
+    -- env; read global definitions from the live global env instead.
+    lookupInternalBinder env name = refreshGlobalBinder globalEnv <$> E.lookupBinderInParentChain env name
     resolveDef (XObj (Lst [XObj DefDynamic _ _, _, value]) _ _) = value
     resolveDef (XObj (Lst [XObj LocalDef _ _, _, value]) _ _) = value
     resolveDef x = x
@@ -611,7 +613,18 @@ specialCommandSetVM phase ctx targetIR valueIR =
             maybe (Left "") Right (contextInternalEnv ctx)
               >>= \e ->
                 maybe (Left "") Right (either (const Nothing) Just (E.searchBinder e path))
-                  >>= \binder -> pure (binder, setInternal path, e)
+                  >>= \binder ->
+                    -- The internal env's parent chain can reach a snapshot
+                    -- of a module or the global env (e.g. while expanding a
+                    -- macro inside a `defn`). A global `def`/`defdynamic`
+                    -- found that way is set in the live global env, or the
+                    -- write lands in a throwaway copy.
+                    if isGlobalDefBinder binder
+                      then
+                        let globalPath = getBinderPath binder
+                            globalEnv = contextGlobalEnv ctx
+                         in pure (refreshGlobalBinder globalEnv binder, setGlobal globalPath, globalEnv)
+                      else pure (binder, setInternal path, e)
           lookupGlobal =
             Right (contextGlobalEnv ctx)
               >>= \e ->
@@ -642,6 +655,17 @@ specialCommandSetVM phase ctx targetIR valueIR =
       pure $ either (failureVM ctx' (raiseExpr targetIR)) (success ctx') value
       where
         success c xo = (replaceInternalEnv c (setStaticOrDynamicVarVM path env binder xo), Right (XObj (Lst []) Nothing Nothing))
+
+isGlobalDefBinder :: Binder -> Bool
+isGlobalDefBinder (Binder _ (XObj (Lst (XObj Def _ _ : _)) _ _)) = True
+isGlobalDefBinder (Binder _ (XObj (Lst (XObj DefDynamic _ _ : _)) _ _)) = True
+isGlobalDefBinder _ = False
+
+-- | Re-reads a global `def`/`defdynamic` binder from the live global env.
+refreshGlobalBinder :: Env -> Binder -> Binder
+refreshGlobalBinder globalEnv binder
+  | isGlobalDefBinder binder = fromMaybe binder (E.findBinderMaybe globalEnv (getBinderPath binder))
+  | otherwise = binder
 
 failureVM :: Context -> XObj -> EvalError -> (Context, Either EvalError a)
 failureVM ctx orig err = evalError ctx (show err) (xobjInfo orig)

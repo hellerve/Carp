@@ -56,6 +56,23 @@
   (let [x (gensym-with 'a)]
     (list 'let (array x 1) (list '= x 1))))
 
+;; global state changed during one macro call must be visible later in the
+;; same call, also when the macro is expanded inside a `defn`
+(defmodule MacroState
+  (defdynamic store '())
+  (defndynamic push! [v] (set! MacroState.store (cons v MacroState.store))))
+
+(defmacro test-gensym-distinct []
+  (not (= (gensym) (gensym))))
+
+(defmacro test-set-global-in-macro []
+  (let-do [before (length MacroState.store)]
+    (MacroState.push! 'a)
+    (= (inc before) (length MacroState.store))))
+
+(defn gensym-distinct-in-defn [] (test-gensym-distinct))
+(defn set-global-in-macro-in-defn [] (test-set-global-in-macro))
+
 (defmacro test-map []
   (let [mapped (Dynamic.map length '((a) (b c) (d e f)))]
     (and  (= 1 (Dynamic.car mapped)) (= 2 (Dynamic.cadr mapped))
@@ -289,6 +306,12 @@
   (assert-true test
                (test-gensym-with)
                "gensym-with works as expected")
+  (assert-true test
+               (gensym-distinct-in-defn)
+               "gensym gives distinct symbols in a macro inside a defn")
+  (assert-true test
+               (set-global-in-macro-in-defn)
+               "set! on a global is visible in a macro inside a defn")
   (assert-true test
                (test-gensym)
                "gensym works as expected")
